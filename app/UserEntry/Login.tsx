@@ -38,7 +38,10 @@ export default function Login() {
         }
     }, [user]);
 
+
     const handleLogin = async () => {
+        if (!validateInputs()) return;
+
         setLoading(true);
         setErrorMessage('');
         try {
@@ -49,14 +52,25 @@ export default function Login() {
 
 
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : "Invalid credentials.";
-            setErrorMessage(errorMsg);
-            Alert.alert("Error", errorMsg);
+            const errorMsg = error instanceof Error ? error.message : "Login failed.";
+            if (typeof error === 'object' && error !== null && 'code' in error) {
+                if (error.code === 'auth/user-not-found') {
+                    Alert.alert("Login Error", "No user found with this username.");
+                } else if (error.code === 'auth/wrong-password') {
+                    Alert.alert("Login Error", "Wrong Password.");
+                } else if (error.code === 'auth/invalid-email') {
+                    Alert.alert("Login Error", "Invalid Email.");
+                } else {
+                    Alert.alert("Login Error", errorMsg);
+                }
+            } else {
+                Alert.alert("Login Error", errorMsg);
+            }
         } finally {
             setLoading(false);
         }
-    };
 
+    };
 
     const handlePasswordReset = () => {
         setLoadingReset(true);
@@ -72,7 +86,7 @@ export default function Login() {
                 setLoadingReset(false);
                 setPasswordReset(false);
             });
-    }
+    };
 
     return (
         <View style={{ justifyContent: "flex-start", alignItems: "center", height: "100%", gap: "2%", backgroundColor: "#fff6eb" }}>

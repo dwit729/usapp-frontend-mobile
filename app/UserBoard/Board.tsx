@@ -1,17 +1,56 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import { BackHandler } from 'react-native'
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons, Entypo, FontAwesome6 } from '@expo/vector-icons'
 import axios from 'axios'
 import { Audio } from 'expo-av'
 import * as FileSystem from 'expo-file-system'
+import { UserContext } from '@/contexts/UserContext'
 
 export default function guestboard() {
+    const { user, setUser } = useContext(UserContext);
+    const [UserData, setUserData] = useState();
     const { width, height } = Dimensions.get('window');
+    const [UserBoards, setUserBoards] = useState();
     const [AISentence, setAISentence] = useState("");
     const [loading, setLoading] = useState(false); // Loading state
     const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
+    const [userLoading, setuserLoading] = useState(false);
+
+    useEffect(() => {
+        if (!user || !user.userId) return;
+
+        const fetchUserData = async () => {
+            setuserLoading(true);
+            try {
+                const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`);
+                setUserData({ ...response.data, userId: user.userId });
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            } finally {
+                setuserLoading(false);
+            }
+        };
+        // const fetchDefaultButtons = async () => {
+        //     setLoading(true);
+        //     try {
+        //         const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userboards`);
+        //         setUserBoards(response.data); // Assuming the response contains an array of buttons
+        //         console.log(response.data);
+        //     } catch (error) {
+        //         console.error('Error fetching default buttons:', error);
+        //         Alert.alert('Error', 'Failed to fetch user boards');
+        //     } finally {
+        //         setLoading(false);
+        //     }
+        // };
+
+        // fetchDefaultButtons();
+        fetchUserData();
+    }, [user]);
+
+
 
     const testButtons = [
         // People

@@ -8,6 +8,8 @@ import textInputStyles from '../../styles/textInputStyles';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { Dropdown } from 'react-native-element-dropdown';
+import Checkbox from 'expo-checkbox';
+
 
 export default function Signup() {
     const router = useRouter();
@@ -20,12 +22,16 @@ export default function Signup() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [userType, setUserType] = useState('User');
     const [age, setAge] = useState('');
+    const [endAge, setEndAge] = useState('');
+    const [endName, setEndName] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isConditionsRead, setisConditionsRead] = useState(false);
+    const [showTerms, setshowTerms] = useState(false);
     const auth = FIREBASE_AUTH;
 
     const userTypeOptions = [
-        { label: 'User', value: 'User' },
+        { label: 'End-User', value: 'End-User' },
         { label: 'Guardian', value: 'Guardian' },
     ];
 
@@ -33,6 +39,17 @@ export default function Signup() {
         if (firstName.length < 5 || lastName.length < 5 || username.length < 5 || email.length < 5) {
             alert("All text inputs except age must have at least 5 characters.");
             return false;
+        }
+        if (userType === 'Guardian' && (endName.length < 5 || endAge.length === 0)) {
+            alert("Guardian must provide End-User's name and age.");
+            return false;
+        }
+        if (parseInt(age) < 18) {
+            alert("Guardian must be an adult (18+ years old).");
+            return false;
+        }
+        if (!isConditionsRead) {
+            alert("Please read and agree to the terms and conditions")
         }
         return true;
     };
@@ -58,6 +75,7 @@ export default function Signup() {
                 email,
                 userType,
                 age,
+                ...(userType === 'Guardian' && { endName, endAge }),
             };
 
             await axios.post('https://usapp-backend.vercel.app/api/users/create', userData);
@@ -77,89 +95,7 @@ export default function Signup() {
             case 1:
                 return (
                     <>
-                        <Text style={{ fontSize: 20, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>Step 1: Personal Information</Text>
-                        <TextInput
-                            placeholder='First Name'
-                            style={textInputStyles.retroTextInput}
-                            value={firstName}
-                            onChangeText={setFirstName}
-                        />
-                        <TextInput
-                            placeholder='Last Name'
-                            style={textInputStyles.retroTextInput}
-                            value={lastName}
-                            onChangeText={setLastName}
-                        />
-                        <TextInput
-                            placeholder='Username'
-                            style={textInputStyles.retroTextInput}
-                            value={username}
-                            onChangeText={setUsername}
-                        />
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', width: "80%", height: 50, alignItems: 'center', marginVertical: 10, paddingLeft: 1 }} />
-                        <View
-                            style={{ flexDirection: 'row', justifyContent: 'flex-end', width: "80%" }}>
-                            <ActionButton
-                                title="Next"
-                                color="#d7f1f8"
-                                width="48%"
-                                buttonStyle={{ alignSelf: 'flex-end' }}
-                                onPress={() => setCurrentStep(2)}
-                            />
-                        </View>
-                    </>
-                );
-            case 2:
-                return (
-                    <>
-                        <Text style={{ fontSize: 20, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>Step 2: Account Information</Text>
-                        <TextInput
-                            placeholder='Email'
-                            style={textInputStyles.retroTextInput}
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                        />
-                        <TextInput
-                            placeholder='Password'
-                            secureTextEntry={!showPassword}
-                            style={textInputStyles.retroTextInput}
-                            value={password}
-                            onChangeText={setPassword}
-                        />
-                        <TextInput
-                            placeholder='Confirm Password'
-                            secureTextEntry={!showPassword}
-                            style={textInputStyles.retroTextInput}
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                        />
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', width: "80%", alignItems: 'center', marginVertical: 10, paddingLeft: 1 }}>
-                            <Switch
-                                value={showPassword}
-                                onValueChange={setShowPassword} />
-                            <Text style={{ marginLeft: 8 }}>Show Password</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: "80%" }}>
-                            <ActionButton
-                                title="Back"
-                                color="#d7f1f8"
-                                width="48%"
-                                onPress={() => setCurrentStep(1)}
-                            />
-                            <ActionButton
-                                title="Next"
-                                color="#d7f1f8"
-                                width="48%"
-                                onPress={() => setCurrentStep(3)}
-                            />
-                        </View>
-                    </>
-                );
-            case 3:
-                return (
-                    <>
-                        <Text style={{ fontSize: 20, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>Step 3: Additional Information</Text>
+                        <Text style={{ fontSize: 20, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>Step 1: User Type Information</Text>
                         <Dropdown
                             data={userTypeOptions}
                             labelField="label"
@@ -189,7 +125,117 @@ export default function Signup() {
                             onChangeText={setAge}
                             keyboardType="numeric"
                         />
+                        {userType === 'Guardian' && (
+                            <>
+                                <TextInput
+                                    placeholder="End-User's Name"
+                                    style={textInputStyles.retroTextInput}
+                                    value={endName}
+                                    onChangeText={setEndName}
+                                />
+                                <TextInput
+                                    placeholder="End-User's Age"
+                                    style={textInputStyles.retroTextInput}
+                                    value={endAge}
+                                    onChangeText={setEndAge}
+                                    keyboardType="numeric"
+                                />
+                            </>
+                        )}
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', width: "80%", height: 100, alignItems: 'center', marginVertical: 10, paddingLeft: 1 }} />
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', width: "80%" }}>
+                            <ActionButton
+                                title="Next"
+                                color="#d7f1f8"
+                                width="48%"
+                                onPress={() => setCurrentStep(2)}
+                            />
+                        </View>
+                    </>
+                );
+            case 2:
+                return (
+                    <>
+                        <Text style={{ fontSize: 20, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>Step 2: Personal Information</Text>
+                        <TextInput
+                            placeholder='First Name'
+                            style={textInputStyles.retroTextInput}
+                            value={firstName}
+                            onChangeText={setFirstName}
+                        />
+                        <TextInput
+                            placeholder='Last Name'
+                            style={textInputStyles.retroTextInput}
+                            value={lastName}
+                            onChangeText={setLastName}
+                        />
+                        <TextInput
+                            placeholder='Username'
+                            style={textInputStyles.retroTextInput}
+                            value={username}
+                            onChangeText={setUsername}
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', width: "80%", height: 50, alignItems: 'center', marginVertical: 10, paddingLeft: 1 }} />
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: "80%" }}>
+                            <ActionButton
+                                title="Back"
+                                color="#d7f1f8"
+                                width="48%"
+                                buttonStyle={{ alignSelf: 'flex-end' }}
+                                onPress={() => setCurrentStep(1)}
+                            />
+                            <ActionButton
+                                title="Next"
+                                color="#d7f1f8"
+                                width="48%"
+                                buttonStyle={{ alignSelf: 'flex-end' }}
+                                onPress={() => setCurrentStep(3)}
+                            />
+                        </View>
+                    </>
+                );
+            case 3:
+                return (
+                    <>
+                        {showTerms && (
+                            <>
+
+                            </>
+                        )}
+                        <Text style={{ fontSize: 20, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>Step 3: Account Credentials</Text>
+                        <TextInput
+                            placeholder='Email'
+                            style={textInputStyles.retroTextInput}
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                        />
+                        <TextInput
+                            placeholder='Password'
+                            secureTextEntry={!showPassword}
+                            style={textInputStyles.retroTextInput}
+                            value={password}
+                            onChangeText={setPassword}
+                        />
+                        <TextInput
+                            placeholder='Confirm Password'
+                            secureTextEntry={!showPassword}
+                            style={textInputStyles.retroTextInput}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: "80%", alignItems: 'center', marginVertical: 10, paddingHorizontal: 2 }}>
+                            <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center' }}>
+                                <Checkbox value={isConditionsRead} onValueChange={setisConditionsRead} />
+                                <Text>Agree to <Text style={{ textDecorationLine: 'underline', color: 'blue' }}>Terms and Conditions</Text></Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Switch
+                                    value={showPassword}
+                                    onValueChange={setShowPassword} />
+                                <Text style={{ marginLeft: 8 }}>Show Password</Text>
+                            </View>
+                        </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: "80%" }}>
                             <ActionButton
                                 title="Back"
