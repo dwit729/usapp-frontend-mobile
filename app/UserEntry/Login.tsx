@@ -8,6 +8,7 @@ import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useContext } from 'react';
 import { UserContext } from '../../contexts/UserContext';
+import { BoardContext } from '../../contexts/BoardContext';
 
 export default function Login() {
     const router = useRouter();

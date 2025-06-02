@@ -1,50 +1,121 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { BackHandler } from 'react-native'
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons, Entypo, FontAwesome6 } from '@expo/vector-icons'
 import axios from 'axios'
 import { Audio } from 'expo-av'
 import * as FileSystem from 'expo-file-system'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 
 export default function guestboard() {
     const { width, height } = Dimensions.get('window');
     const [AISentence, setAISentence] = useState("");
     const [loading, setLoading] = useState(false); // Loading state
     const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
+    const [containerWidth, setContainerWidth] = useState(0);
+    const [buttonSounds, setButtonSounds] = useState<{ [key: string]: string }>({});
+    const [configLoading, setConfigLoading] = useState(true);
+
+    useEffect(() => {
+        const preloadButtonSounds = async () => {
+            setConfigLoading(true);
+            for (const button of testButtons) {
+                try {
+                    const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
+                        text: button.buttonName
+                    });
+                    const base64Audio = response.data;
+                    const uri = FileSystem.cacheDirectory + `${button.buttonName}_tts.mp3`;
+                    await FileSystem.writeAsStringAsync(uri, base64Audio, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                    setButtonSounds(prev => ({ ...prev, [button.buttonName]: uri }));
+                } catch (error) {
+                    console.error(`Failed to preload sound for ${button.buttonName}:`, error);
+                }
+            }
+            setConfigLoading(false);
+        };
+
+        preloadButtonSounds()
+    }, []);
+
+    const onLayout = useCallback((event: { nativeEvent: { layout: { width: number; height: number } } }) => {
+        const { width } = event.nativeEvent.layout;
+        setContainerWidth(width);
+    }, []);
+
+    const calculateNumColumns = () => {
+        if (!containerWidth) return 0;
+        return Math.max(1, Math.floor(containerWidth / 100));
+    };
+
+    const numColumns = calculateNumColumns();
 
     const testButtons = [
-        // People
-        { buttonCategory: "People", buttonImagePath: "images/mama.png", buttonName: "Mama" },
-        { buttonCategory: "People", buttonImagePath: "images/papa.png", buttonName: "Papa" },
-        { buttonCategory: "People", buttonImagePath: "images/ako.png", buttonName: "Ako" },
-        { buttonCategory: "People", buttonImagePath: "images/ikaw.png", buttonName: "Ikaw" },
+        // Nouns (Orange)
+        { buttonCategory: "Nouns", buttonImagePath: "images/bola.png", buttonName: "Bola" },
+        { buttonCategory: "Nouns", buttonImagePath: "images/laruan.png", buttonName: "Laruan" },
+        { buttonCategory: "Nouns", buttonImagePath: "images/sapatos.png", buttonName: "Sapatos" },
+        { buttonCategory: "Nouns", buttonImagePath: "images/kutsara.png", buttonName: "Kutsara" },
 
-        // Actions
-        { buttonCategory: "Actions", buttonImagePath: "images/kain.png", buttonName: "Kain" },
-        { buttonCategory: "Actions", buttonImagePath: "images/inom.png", buttonName: "Inom" },
-        { buttonCategory: "Actions", buttonImagePath: "images/tulog.png", buttonName: "Tulog" },
-        { buttonCategory: "Actions", buttonImagePath: "images/laro.png", buttonName: "Laro" },
+        // Pronouns (Light Yellow)
+        { buttonCategory: "Pronouns", buttonImagePath: "images/ako.png", buttonName: "Ako" },
+        { buttonCategory: "Pronouns", buttonImagePath: "images/ikaw.png", buttonName: "Ikaw" },
+        { buttonCategory: "Pronouns", buttonImagePath: "images/siya.png", buttonName: "Siya" },
+        { buttonCategory: "Pronouns", buttonImagePath: "images/tayo.png", buttonName: "Tayo" },
 
-        // Feelings
-        { buttonCategory: "Feelings", buttonImagePath: "images/masaya.png", buttonName: "Masaya" },
-        { buttonCategory: "Feelings", buttonImagePath: "images/malungkot.png", buttonName: "Malungkot" },
-        { buttonCategory: "Feelings", buttonImagePath: "images/galit.png", buttonName: "Galit" },
-        { buttonCategory: "Feelings", buttonImagePath: "images/takot.png", buttonName: "Takot" },
+        // Verbs (Light Green)
+        { buttonCategory: "Verbs", buttonImagePath: "images/kain.png", buttonName: "Kumain" },
+        { buttonCategory: "Verbs", buttonImagePath: "images/inom.png", buttonName: "Uminom" },
+        { buttonCategory: "Verbs", buttonImagePath: "images/laro.png", buttonName: "Maglaro" },
+        { buttonCategory: "Verbs", buttonImagePath: "images/tulog.png", buttonName: "Matulog" },
 
-        // Things
-        { buttonCategory: "Things", buttonImagePath: "images/tubig.png", buttonName: "Tubig" },
-        { buttonCategory: "Things", buttonImagePath: "images/gatas.png", buttonName: "Gatas" },
-        { buttonCategory: "Things", buttonImagePath: "images/bola.png", buttonName: "Bola" },
-        { buttonCategory: "Things", buttonImagePath: "images/laruan.png", buttonName: "Laruan" },
+        // Adjectives (Sky Blue)
+        { buttonCategory: "Adjectives", buttonImagePath: "images/malaki.png", buttonName: "Malaki" },
+        { buttonCategory: "Adjectives", buttonImagePath: "images/maliit.png", buttonName: "Maliit" },
+        { buttonCategory: "Adjectives", buttonImagePath: "images/mainit.png", buttonName: "Mainit" },
+        { buttonCategory: "Adjectives", buttonImagePath: "images/malamig.png", buttonName: "Malamig" },
 
-        // Places
-        { buttonCategory: "Places", buttonImagePath: "images/bahay.png", buttonName: "Bahay" },
-        { buttonCategory: "Places", buttonImagePath: "images/eskwelahan.png", buttonName: "Eskwelahan" },
-        { buttonCategory: "Places", buttonImagePath: "images/CR.png", buttonName: "CR" },
-        { buttonCategory: "Places", buttonImagePath: "images/labas.png", buttonName: "Labas" },
-        { buttonCategory: "Places", buttonImagePath: "images/Kwarto.png", buttonName: "Kwarto" }
+        // Prepositions & Social Words (Pink)
+        { buttonCategory: "Prepositions & Social Words", buttonImagePath: "images/sa_loob.png", buttonName: "Sa Loob" },
+        { buttonCategory: "Prepositions & Social Words", buttonImagePath: "images/sa_labas.png", buttonName: "Sa Labas" },
+        { buttonCategory: "Prepositions & Social Words", buttonImagePath: "images/salamat.png", buttonName: "Salamat" },
+        { buttonCategory: "Prepositions & Social Words", buttonImagePath: "images/paalam.png", buttonName: "Paalam" },
+
+        // Questions (Lavender)
+        { buttonCategory: "Questions", buttonImagePath: "images/ano.png", buttonName: "Ano" },
+        { buttonCategory: "Questions", buttonImagePath: "images/saan.png", buttonName: "Saan" },
+        { buttonCategory: "Questions", buttonImagePath: "images/kailan.png", buttonName: "Kailan" },
+        { buttonCategory: "Questions", buttonImagePath: "images/bakit.png", buttonName: "Bakit" },
+
+        // Negation & Important Words (Red)
+        { buttonCategory: "Negation & Important Words", buttonImagePath: "images/hindi.png", buttonName: "Hindi" },
+        { buttonCategory: "Negation & Important Words", buttonImagePath: "images/ayaw.png", buttonName: "Ayaw" },
+        { buttonCategory: "Negation & Important Words", buttonImagePath: "images/sige.png", buttonName: "Sige" },
+        { buttonCategory: "Negation & Important Words", buttonImagePath: "images/gusto.png", buttonName: "Gusto" },
+
+        // Adverbs (Brown/Tan)
+        { buttonCategory: "Adverbs", buttonImagePath: "images/ngayon.png", buttonName: "Ngayon" },
+        { buttonCategory: "Adverbs", buttonImagePath: "images/kanina.png", buttonName: "Kanina" },
+        { buttonCategory: "Adverbs", buttonImagePath: "images/mabilis.png", buttonName: "Mabilis" },
+        { buttonCategory: "Adverbs", buttonImagePath: "images/dahan_dahan.png", buttonName: "Dahan-dahan" },
+
+        // Conjunctions (White)
+        { buttonCategory: "Conjunctions", buttonImagePath: "images/at.png", buttonName: "At" },
+        { buttonCategory: "Conjunctions", buttonImagePath: "images/o.png", buttonName: "O" },
+        { buttonCategory: "Conjunctions", buttonImagePath: "images/kasi.png", buttonName: "Kasi" },
+        { buttonCategory: "Conjunctions", buttonImagePath: "images/pero.png", buttonName: "Pero" },
+
+        // Determiners (Dark Gray)
+        { buttonCategory: "Determiners", buttonImagePath: "images/ang.png", buttonName: "Ang" },
+        { buttonCategory: "Determiners", buttonImagePath: "images/isang.png", buttonName: "Isang" },
+        { buttonCategory: "Determiners", buttonImagePath: "images/lahat.png", buttonName: "Lahat" },
+        { buttonCategory: "Determiners", buttonImagePath: "images/wala.png", buttonName: "Wala" },
     ];
+
+
 
     const router = useRouter()
     const [isSwitchOn, setIsSwitchOn] = useState(false)
@@ -116,8 +187,25 @@ export default function guestboard() {
     }
 
     const handleBoardButtonPress = (button: { buttonCategory: string; buttonImagePath: string; buttonName: string }) => {
-        if (!isSwitchOn) {
+        if (isSwitchOn) {
+            playButtonSound(button.buttonName);
+        }
+        else {
             setSelectedWords((prev) => [...prev, button]);
+        }
+    }
+    const playButtonSound = async (buttonName: string) => {
+        try {
+            const uri = buttonSounds[buttonName];
+            if (uri) {
+
+                const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+                await sound.playAsync();
+            } else {
+                Alert.alert("Sound not loaded", "Please try again later.");
+            }
+        } catch (error) {
+            console.error(`Error playing sound for ${buttonName}:`, error);
         }
     };
 
@@ -132,16 +220,22 @@ export default function guestboard() {
         ]);
     };
 
-    const getCategoryColor = (category: string) => {
+    const getCategoryColor = (category: any) => {
         switch (category) {
-            case "People": return "#FFD700";
-            case "Actions": return "#FF4500";
-            case "Feelings": return "#32CD32";
-            case "Things": return "#1E90FF";
-            case "Places": return "#8A2BE2";
-            default: return "#ccc";
+            case 'Nouns': return '#FFA332'; // orange
+            case 'Pronouns': return '#FFE777'; // light yellow
+            case 'Verbs': return '#A3E264'; // light green
+            case 'Adjectives': return '#63C4FF'; // sky blue
+            case 'Prepositions & Social Words': return '#FF84C1'; // light pink
+            case 'Questions': return '#B28BFF'; // lavender
+            case 'Negation & Important Words': return '#FF4747'; // bright red
+            case 'Adverbs': return '#B98A6A'; // brown/tan
+            case 'Conjunctions': return '#FFFFFF'; // white
+            case 'Determiners': return '#595959'; // dark gray
+            default: return '#D3D3D3'; // fallback light gray
         }
     };
+
 
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -169,6 +263,7 @@ export default function guestboard() {
                                 data={selectedWords}
                                 keyExtractor={(_, index) => index.toString()}
                                 horizontal
+                                pagingEnabled
                                 renderItem={({ item, index }) => (
                                     <View style={styles.selectedWord}>
                                         <Text style={{}}>{(item as { buttonName: string }).buttonName}</Text>
@@ -183,17 +278,36 @@ export default function guestboard() {
                             <MaterialCommunityIcons name='delete' size={32} color="#fff" />
                         </TouchableOpacity>
                     </View>
-                    <View style={styles.boardButtons}>
-                        {testButtons.map((button, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
-                                onPress={() => handleBoardButtonPress(button)}
-                            >
-                                <View style={styles.boardImage} />
-                                <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.boardButtonText}>{button.buttonName}</Text>
-                            </TouchableOpacity>
-                        ))}
+                    <View style={styles.boardButtons} onLayout={onLayout}>
+                        <SafeAreaProvider>
+                            <SafeAreaView>
+                                {(containerWidth > 0) ? (
+                                    <FlatList
+                                        key={numColumns}
+                                        style={{ width: "100%", height: "100%" }}
+                                        data={testButtons}
+                                        keyExtractor={(_, index) => index.toString()}
+                                        numColumns={numColumns}
+                                        pagingEnabled
+                                        showsVerticalScrollIndicator={true}
+                                        scrollEnabled={true}
+                                        renderItem={({ item: button, index }) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
+                                                onPress={() => handleBoardButtonPress(button)}
+                                            >
+                                                <View style={styles.boardImage} />
+                                                <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.boardButtonText}>{button.buttonName}</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    />
+                                ) : (
+                                    <ActivityIndicator size="large" color="#000" />
+                                )}
+                            </SafeAreaView>
+                        </SafeAreaProvider>
+
                     </View>
                 </View>
                 <View style={styles.rightPanel}>
@@ -260,6 +374,20 @@ export default function guestboard() {
                 </View>
             </Modal>
             <Modal
+                statusBarTranslucent={false}
+                animationType="fade"
+                transparent={true}
+                visible={configLoading}
+                onRequestClose={() => setConfigLoading(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalText}>CONFIGURING BOARD</Text>
+                        <ActivityIndicator size="large" color="#000" />
+                    </View>
+                </View>
+            </Modal>
+            <Modal
                 statusBarTranslucent={true}
                 animationType="fade"
                 transparent={true}
@@ -287,20 +415,22 @@ const styles = StyleSheet.create({
     },
     row: {
         width: "100%",
-        flex: 1,
+        height: "100%",
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
+
     },
     leftPanel: {
         flexGrow: 1,
-        flex: 1,
         height: "100%",
-        maxWidth: "100%",
+        maxHeight: '100%',
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#fff6eb",
         padding: 10,
+
+
     },
     rightPanel: {
         minWidth: 150,
@@ -362,15 +492,17 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginLeft: 10,
         width: 60,
-        height: "100%",
-        alignItems: "center",
+
     },
     boardButtons: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+        flexGrow: 1,
         justifyContent: "center",
+        alignItems: "center",
         maxWidth: "100%",
+        width: "100%",
         marginTop: 10,
+        maxHeight: "100%",
+
     },
     boardButton: {
         width: 100,
@@ -381,6 +513,11 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
         padding: 5,
         gap: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     boardImage: {
         backgroundColor: "#fff",
@@ -388,6 +525,11 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         borderTopRightRadius: 6,
         borderTopLeftRadius: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
 
     boardButtonText: {

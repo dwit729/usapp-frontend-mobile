@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal } from 'react-native'
-import React, { useEffect, useState, useContext } from 'react'
+import React, { useEffect, useState, useContext, useCallback } from 'react'
 import { BackHandler } from 'react-native'
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons, Entypo, FontAwesome6 } from '@expo/vector-icons'
@@ -7,138 +7,154 @@ import axios from 'axios'
 import { Audio } from 'expo-av'
 import * as FileSystem from 'expo-file-system'
 import { UserContext } from '@/contexts/UserContext'
+import { BoardContext } from '@/contexts/BoardContext'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 
 export default function guestboard() {
     const { user, setUser } = useContext(UserContext);
-    const [UserData, setUserData] = useState();
-    const { width, height } = Dimensions.get('window');
-    const [UserBoards, setUserBoards] = useState();
+    const { board, setBoard } = useContext(BoardContext);
+    const [UserData, setUserData] = useState<{ boardPreference: string; preferredVoice?: number; preferredPitch?: number }>({ boardPreference: "left" });
+    const [CurrentBoard, setCurrentBoard] = useState();
     const [AISentence, setAISentence] = useState("");
     const [loading, setLoading] = useState(false); // Loading state
     const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
-    const [userLoading, setuserLoading] = useState(false);
+    const [buttonSounds, setButtonSounds] = useState<{ [key: string]: string }>({});
+    type BoardButton = { buttonCategory: string; buttonImagePath: string; buttonName: string };
+    const [testButtons, settestButtons] = useState<BoardButton[]>([]);
+    const router = useRouter()
+    const [isSwitchOn, setIsSwitchOn] = useState(false)
+    const [selectedWords, setSelectedWords] = useState<{ buttonCategory: string; buttonImagePath: string; buttonName: string }[]>([]);
+    // Separate loading states
+    const [aiLoading, setAiLoading] = useState(false); // For AI sentence building
+    const [configLoading, setConfigLoading] = useState(false); // For board/user config
+    const [containerWidth, setContainerWidth] = useState(0);
 
+
+
+
+    const onLayout = useCallback((event: { nativeEvent: { layout: { width: number; height: number } } }) => {
+        const { width } = event.nativeEvent.layout;
+        setContainerWidth(width);
+    }, []);
+
+    const calculateNumColumns = () => {
+        if (!containerWidth) return 0;
+        return Math.max(1, Math.floor(containerWidth / 100));
+    };
+
+    const numColumns = calculateNumColumns();
+
+    // Update effect to use configLoading
     useEffect(() => {
-        if (!user || !user.userId) return;
+
 
         const fetchUserData = async () => {
-            setuserLoading(true);
+            setConfigLoading(true);
             try {
                 const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`);
                 setUserData({ ...response.data, userId: user.userId });
             } catch (error) {
                 console.error('Error fetching user data:', error);
             } finally {
-                setuserLoading(false);
+
+                fetchBoard();
             }
         };
-        // const fetchDefaultButtons = async () => {
-        //     setLoading(true);
-        //     try {
-        //         const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userboards`);
-        //         setUserBoards(response.data); // Assuming the response contains an array of buttons
-        //         console.log(response.data);
-        //     } catch (error) {
-        //         console.error('Error fetching default buttons:', error);
-        //         Alert.alert('Error', 'Failed to fetch user boards');
-        //     } finally {
-        //         setLoading(false);
-        //     }
-        // };
+        const fetchBoard = async () => {
+            setConfigLoading(true);
+            try {
+                const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/${board.id}/getboard`);
+                setCurrentBoard(response.data);
+                settestButtons(response.data.buttons);
+            } catch (error) {
+                console.error('Error fetching default buttons:', error);
+                Alert.alert('Error', 'Failed to fetch user boards');
+            } finally {
 
-        // fetchDefaultButtons();
+            }
+        };
+
+
         fetchUserData();
-    }, [user]);
 
 
+    }, [user, board]);
 
-    const testButtons = [
-        // People
-        { buttonCategory: "People", buttonImagePath: "images/mama.png", buttonName: "Mama" },
-        { buttonCategory: "People", buttonImagePath: "images/papa.png", buttonName: "Papa" },
-        { buttonCategory: "People", buttonImagePath: "images/ako.png", buttonName: "Ako" },
-        { buttonCategory: "People", buttonImagePath: "images/ikaw.png", buttonName: "Ikaw" },
+    useEffect(() => {
+        const preloadButtonSounds = async () => {
+            for (const button of testButtons) {
+                try {
+                    const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
+                        text: button.buttonName,
+                        pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 1),
+                        voice: ((UserData.preferredVoice) ? UserData.preferredVoice : 0),
+                    });
+                    const base64Audio = response.data;
+                    const uri = FileSystem.cacheDirectory + `${button.buttonName}_tts.mp3`;
+                    await FileSystem.writeAsStringAsync(uri, base64Audio, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                    setButtonSounds(prev => ({ ...prev, [button.buttonName]: uri }));
+                } catch (error) {
+                    console.error(`Failed to preload sound for ${button.buttonName}:`, error);
+                }
+            }
+            setConfigLoading(false);
+        };
 
-        // Actions
-        { buttonCategory: "Actions", buttonImagePath: "images/kain.png", buttonName: "Kain" },
-        { buttonCategory: "Actions", buttonImagePath: "images/inom.png", buttonName: "Inom" },
-        { buttonCategory: "Actions", buttonImagePath: "images/tulog.png", buttonName: "Tulog" },
-        { buttonCategory: "Actions", buttonImagePath: "images/laro.png", buttonName: "Laro" },
+        preloadButtonSounds()
+    }, [testButtons]);
 
-        // Feelings
-        { buttonCategory: "Feelings", buttonImagePath: "images/masaya.png", buttonName: "Masaya" },
-        { buttonCategory: "Feelings", buttonImagePath: "images/malungkot.png", buttonName: "Malungkot" },
-        { buttonCategory: "Feelings", buttonImagePath: "images/galit.png", buttonName: "Galit" },
-        { buttonCategory: "Feelings", buttonImagePath: "images/takot.png", buttonName: "Takot" },
+    // Use a single Audio.Sound instance for all button sounds
+    const [soundInstance, setSoundInstance] = useState<Audio.Sound | null>(null);
 
-        // Things
-        { buttonCategory: "Things", buttonImagePath: "images/tubig.png", buttonName: "Tubig" },
-        { buttonCategory: "Things", buttonImagePath: "images/gatas.png", buttonName: "Gatas" },
-        { buttonCategory: "Things", buttonImagePath: "images/bola.png", buttonName: "Bola" },
-        { buttonCategory: "Things", buttonImagePath: "images/laruan.png", buttonName: "Laruan" },
-
-        // Places
-        { buttonCategory: "Places", buttonImagePath: "images/bahay.png", buttonName: "Bahay" },
-        { buttonCategory: "Places", buttonImagePath: "images/eskwelahan.png", buttonName: "Eskwelahan" },
-        { buttonCategory: "Places", buttonImagePath: "images/CR.png", buttonName: "CR" },
-        { buttonCategory: "Places", buttonImagePath: "images/labas.png", buttonName: "Labas" },
-        { buttonCategory: "Places", buttonImagePath: "images/Kwarto.png", buttonName: "Kwarto" }
-    ];
-
-    const router = useRouter()
-    const [isSwitchOn, setIsSwitchOn] = useState(false)
-    const [selectedWords, setSelectedWords] = useState<{ buttonCategory: string; buttonImagePath: string; buttonName: string }[]>([]);
-    const [sound, setSound] = useState<Audio.Sound | null>(null);
-
-    const toggleSwitch = () => setIsSwitchOn(!isSwitchOn);
-
-    const activateTextToSpeech = async (text: string) => {
+    const playButtonSound = async (buttonName: string) => {
         try {
-            const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
-                "text": text
-            });
-            const data = await response.data;
-            console.log(response.data); // Base64 encoded audio content
+            const uri = buttonSounds[buttonName];
+            if (uri) {
 
-            // Write base64 to a temporary mp3 file
-            const uri = FileSystem.cacheDirectory + 'tts.mp3';
-            await FileSystem.writeAsStringAsync(uri, data, {
-                encoding: FileSystem.EncodingType.Base64,
-            });
-
-            const { sound } = await Audio.Sound.createAsync({ uri });
-            setSound(sound);
-            await sound.playAsync();
+                const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+                await sound.playAsync();
+            } else {
+                Alert.alert("Sound not loaded", "Please try again later.");
+            }
         } catch (error) {
-            console.error(error);
+            console.error(`Error playing sound for ${buttonName}:`, error);
         }
-    }
+    };
 
+    // Update AI loading in handleBuildSentence
     const handleBuildSentence = async (text: string) => {
-        setLoading(true); // Start loading
+        setAiLoading(true); // Start AI loading
         try {
             const response = await axios.post('https://usapp-backend.vercel.app/api/board/buildSentence', {
                 "text": text
             });
             const data = await response.data;
-            console.log(data);
+
             setAISentence(data.message);
             activateAISpeech(data.message);
             setModalVisible(true); // Show modal
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false); // Stop loading
+            setAiLoading(false); // Stop AI loading
         }
     }
 
-    const activateAISpeech = async (text: string) => {
+
+
+    const toggleSwitch = () => setIsSwitchOn(!isSwitchOn);
+
+    const activateTextToSpeech = async (text: string) => {
         try {
             const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
-                "text": text
+                "text": text,
+                pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 1),
+                voice: ((UserData.preferredVoice) ? UserData.preferredVoice : 0),
             });
             const data = await response.data;
-            console.log(response.data); // Base64 encoded audio content
+
 
             // Write base64 to a temporary mp3 file
             const uri = FileSystem.cacheDirectory + 'tts.mp3';
@@ -147,18 +163,46 @@ export default function guestboard() {
             });
 
             const { sound } = await Audio.Sound.createAsync({ uri });
-            setSound(sound);
             await sound.playAsync();
         } catch (error) {
             console.error(error);
         }
     }
 
+
+
+    // Update handleBoardButtonPress to play sound
     const handleBoardButtonPress = (button: { buttonCategory: string; buttonImagePath: string; buttonName: string }) => {
-        if (!isSwitchOn) {
+        if (isSwitchOn) {
+            playButtonSound(button.buttonName);
+        }
+        else {
             setSelectedWords((prev) => [...prev, button]);
         }
-    };
+    }
+
+    const activateAISpeech = async (text: string) => {
+        try {
+            const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
+                "text": text,
+                pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 1),
+                voice: ((UserData.preferredVoice) ? UserData.preferredVoice : 0),
+            });
+            const data = await response.data;
+
+
+            // Write base64 to a temporary mp3 file
+            const uri = FileSystem.cacheDirectory + 'tts.mp3';
+            await FileSystem.writeAsStringAsync(uri, data, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+
+            const { sound } = await Audio.Sound.createAsync({ uri });
+            await sound.playAsync();
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     const handleDeleteWord = (index: number) => {
         setSelectedWords((prev) => prev.filter((_, i) => i !== index));
@@ -200,11 +244,12 @@ export default function guestboard() {
 
     return (
         <View style={styles.container}>
-            <View style={[styles.row, { maxWidth: "100%" }]}>
+            <View style={[styles.row, { maxWidth: "100%", flexDirection: (UserData.boardPreference === "right") ? "row" : "row-reverse" }]}>
                 <View style={styles.leftPanel}>
                     <View style={styles.topright}>
                         <View style={styles.collection}>
                             <FlatList
+
                                 data={selectedWords}
                                 keyExtractor={(_, index) => index.toString()}
                                 horizontal
@@ -222,17 +267,36 @@ export default function guestboard() {
                             <MaterialCommunityIcons name='delete' size={32} color="#fff" />
                         </TouchableOpacity>
                     </View>
-                    <View style={styles.boardButtons}>
-                        {testButtons.map((button, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
-                                onPress={() => handleBoardButtonPress(button)}
-                            >
-                                <View style={styles.boardImage} />
-                                <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.boardButtonText}>{button.buttonName}</Text>
-                            </TouchableOpacity>
-                        ))}
+                    <View style={styles.boardButtons} onLayout={onLayout}>
+                        <SafeAreaProvider>
+                            <SafeAreaView>
+                                {(containerWidth > 0) ? (
+                                    <FlatList
+                                        key={numColumns}
+                                        style={{ width: "100%", height: "100%" }}
+                                        data={testButtons}
+                                        keyExtractor={(_, index) => index.toString()}
+                                        numColumns={numColumns}
+                                        pagingEnabled
+                                        showsVerticalScrollIndicator={true}
+                                        scrollEnabled={true}
+                                        renderItem={({ item: button, index }) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
+                                                onPress={() => handleBoardButtonPress(button)}
+                                            >
+                                                <View style={styles.boardImage} />
+                                                <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.boardButtonText}>{button.buttonName}</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    />
+                                ) : (
+                                    <ActivityIndicator size="large" color="#000" />
+                                )}
+                            </SafeAreaView>
+                        </SafeAreaProvider>
+
                     </View>
                 </View>
                 <View style={styles.rightPanel}>
@@ -273,7 +337,7 @@ export default function guestboard() {
                             onValueChange={toggleSwitch}
                             style={styles.switch}
                         />
-                        <Text style={styles.iconText}>TOGGLE</Text>
+                        <Text style={[styles.iconText, { marginTop: 5 }]}>AUTO-SPEAK</Text>
                     </View>
                 </View>
             </View>
@@ -299,11 +363,25 @@ export default function guestboard() {
                 </View>
             </Modal>
             <Modal
+                statusBarTranslucent={false}
+                animationType="fade"
+                transparent={true}
+                visible={configLoading}
+                onRequestClose={() => setConfigLoading(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalText}>CONFIGURING BOARD</Text>
+                        <ActivityIndicator size="large" color="#000" />
+                    </View>
+                </View>
+            </Modal>
+            <Modal
                 statusBarTranslucent={true}
                 animationType="fade"
                 transparent={true}
-                visible={loading}
-                onRequestClose={() => setLoading(false)}
+                visible={aiLoading}
+                onRequestClose={() => setAiLoading(false)}
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
@@ -326,20 +404,22 @@ const styles = StyleSheet.create({
     },
     row: {
         width: "100%",
-        flex: 1,
+        height: "100%",
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
+
     },
     leftPanel: {
         flexGrow: 1,
-        flex: 1,
         height: "100%",
-        maxWidth: "100%",
+        maxHeight: '100%',
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#fff6eb",
         padding: 10,
+
+
     },
     rightPanel: {
         minWidth: 150,
@@ -347,8 +427,6 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#BEE6EA",
-        borderTopLeftRadius: 20,
-        borderBottomLeftRadius: 20,
         padding: 10,
     },
     panelHeader: {
@@ -401,15 +479,17 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginLeft: 10,
         width: 60,
-        height: "100%",
-        alignItems: "center",
+
     },
     boardButtons: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+        flexGrow: 1,
         justifyContent: "center",
+        alignItems: "center",
         maxWidth: "100%",
+        width: "100%",
         marginTop: 10,
+        maxHeight: "100%",
+
     },
     boardButton: {
         width: 100,
@@ -451,7 +531,8 @@ const styles = StyleSheet.create({
         width: "auto"
     },
     modalContainer: {
-        flex: 1,
+        width: "100%",
+        height: "100%",
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "rgba(0, 0, 0, 0.5)",

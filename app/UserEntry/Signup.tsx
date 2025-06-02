@@ -1,4 +1,4 @@
-import { View, Text, Image, TextInput, Switch, ScrollView, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TextInput, Switch, ScrollView, KeyboardAvoidingView, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
 import axios from 'axios';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import ActionButton from "../../components/Buttons/ActionButton";
@@ -37,7 +37,7 @@ export default function Signup() {
 
     const validateInputs = () => {
         if (firstName.length < 5 || lastName.length < 5 || username.length < 5 || email.length < 5) {
-            alert("All text inputs except age must have at least 5 characters.");
+            alert("Please complete all information properly.");
             return false;
         }
         if (userType === 'Guardian' && (endName.length < 5 || endAge.length === 0)) {
@@ -199,6 +199,40 @@ export default function Signup() {
                     <>
                         {showTerms && (
                             <>
+                                <Modal
+                                    visible={showTerms}
+                                    animationType="fade"
+                                    transparent
+                                    onRequestClose={() => setshowTerms(false)}
+                                >
+                                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                                        <View style={{ width: '80%', maxHeight: 400, backgroundColor: '#fff', borderRadius: 10, padding: 20 }}>
+                                            <ScrollView>
+                                                <Text style={{ fontSize: 16, color: '#043b64', marginBottom: 20 }}>
+                                                    Welcome to USAPP! Please read these Terms and Conditions carefully before using our app. By signing up, you agree to abide by all rules and policies.
+                                                    {"\n\n"}
+                                                    1. You must provide accurate information.
+                                                    {"\n"}
+                                                    2. Guardians must be 18+ years old.
+                                                    {"\n"}
+                                                    3. Respect privacy and community guidelines.
+                                                    {"\n"}
+                                                    4. Your data is protected as per our privacy policy and the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
+                                                    {"\n\n"}
+                                                    By using this app and creating an account, you consent to the collection, use, and processing of your personal data in accordance with the Philippine Data Privacy Act. We are committed to safeguarding your information and ensuring your privacy rights.
+                                                    {"\n\n"}
+                                                    For full details, visit our website or contact support.
+                                                </Text>
+                                                <ActionButton
+                                                    title="Go Back"
+                                                    color="#d7f1f8"
+                                                    width="100%"
+                                                    onPress={() => setshowTerms(false)}
+                                                />
+                                            </ScrollView>
+                                        </View>
+                                    </View>
+                                </Modal>
 
                             </>
                         )}
@@ -227,7 +261,7 @@ export default function Signup() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: "80%", alignItems: 'center', marginVertical: 10, paddingHorizontal: 2 }}>
                             <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center' }}>
                                 <Checkbox value={isConditionsRead} onValueChange={setisConditionsRead} />
-                                <Text>Agree to <Text style={{ textDecorationLine: 'underline', color: 'blue' }}>Terms and Conditions</Text></Text>
+                                <Text>Agree to  <Text onPress={() => { setshowTerms(true) }} style={{ textDecorationLine: 'underline', color: 'blue' }}>Terms and Conditions</Text></Text>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Switch

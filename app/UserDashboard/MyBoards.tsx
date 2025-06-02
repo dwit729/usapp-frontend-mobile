@@ -3,10 +3,13 @@ import React, { useContext, useState, useEffect, useCallback } from 'react'
 import { UserContext } from '../../contexts/UserContext';
 import axios from 'axios';
 import { router, useFocusEffect } from 'expo-router';
+import { BoardContext } from '../../contexts/BoardContext';
 
 
 export default function MyBoards() {
     const { user, setUser } = useContext(UserContext);
+    const { board, setBoard } = useContext(BoardContext);
+    const [UserBoard, setUserBoard] = useState();
     const [UserBoards, setUserBoards] = useState<{ boardName: string }[]>([]);
     const [Loading, setLoading] = useState(false);
     const [UserData, setUserData] = useState();
@@ -22,6 +25,7 @@ export default function MyBoards() {
             default: return '#D1D5DB'; // gray-300
         }
     };
+
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -39,6 +43,11 @@ export default function MyBoards() {
         fetchUserData();
     }, [user]);
 
+
+    const goToBoard = () => {
+        console.log("board", board);
+        router.push({ pathname: '/UserBoard/Board' });
+    }
 
 
     useFocusEffect(
@@ -70,9 +79,11 @@ export default function MyBoards() {
                     {
                         UserBoards.map((board, index) => {
                             return (<>
-                                <TouchableOpacity key={index} onPress={() => { router.push({ pathname: '/UserBoard/Board' }) }}>
+                                <TouchableOpacity key={index} onPress={async () => {
+                                    await setBoard(board);
+                                    goToBoard();
+                                }}>
                                     <View
-
                                         style={{
                                             width: 100,
                                             height: 100,
