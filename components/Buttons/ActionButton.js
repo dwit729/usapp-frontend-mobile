@@ -4,7 +4,7 @@ import React from 'react'
 export default function CTA_Button(props) {
 
 
-  const { title, color, width, titleStyle, buttonStyle, onPress } = props;
+  const { title, color, width, titleStyle, buttonStyle, onPress, disabled } = props;
 
   const styles = StyleSheet.create({
     button: {
@@ -15,7 +15,7 @@ export default function CTA_Button(props) {
       borderWidth: 1,
       borderBottomWidth: 4,
       borderRightWidth: 4,
-      backgroundColor: (color ? color : '#fad4e1'),
+      backgroundColor: (color ? (disabled ? 'gray' : color) : '#fad4e1'),
       borderRadius: 7,
       width: (width ? width : 'auto'),
       textAlign: 'center',
@@ -30,7 +30,7 @@ export default function CTA_Button(props) {
     }
   })
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, buttonStyle]}>
+    <TouchableOpacity disabled={disabled ? disabled : false} onPress={onPress} style={[styles.button, buttonStyle]}>
       <Text style={(titleStyle ? titleStyle : styles.text)}>{title}</Text>
     </TouchableOpacity>
   )

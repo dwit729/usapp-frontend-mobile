@@ -24,7 +24,7 @@ export default function Login() {
 
     const validateInputs = () => {
         if (username.length < 5 || password.length < 5) {
-            alert("Username and password must have at least 5 characters.");
+            Alert.alert("Input Error", "Username and password must have at least 5 characters.");
             return false;
         }
         return true;
@@ -34,7 +34,7 @@ export default function Login() {
         if (user) {
             console.log("current user", user);
             router.navigate({
-                pathname: "/UserDashboard/Main"
+                pathname: "/UserDashboard/MyBoards",
             });
         }
     }, [user]);
@@ -94,19 +94,52 @@ export default function Login() {
             <Image resizeMode='cover' style={{ height: 100, width: '100%', marginBottom: 20 }} source={require('../../assets/backgrounds/header_background_img.png')} />
             <Text style={{ fontSize: 60, textAlign: 'center', width: '80%', marginBottom: 20, fontWeight: "bold", color: '#043b64' }}>LOGIN</Text>
             <View style={{ justifyContent: "flex-start", alignItems: "center", paddingVertical: 40, gap: 20, width: "95%", backgroundColor: "#ffffff", borderRadius: 20, borderWidth: 2, borderColor: '#043b64', shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 1.41, elevation: 2 }}>
-                <TextInput
-                    placeholder='Username'
-                    style={textInputStyles.retroTextInput}
-                    value={username}
-                    onChangeText={setUsername}
-                />
-                <TextInput
-                    placeholder='Password'
-                    secureTextEntry={!showPassword}
-                    style={textInputStyles.retroTextInput}
-                    value={password}
-                    onChangeText={setPassword}
-                />
+                <View style={{ alignSelf: 'center', width: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ marginBottom: 4, color: '#043b64', fontWeight: 'bold', width: '80%', }}>
+                        Username <Text style={{ color: 'red' }}>*</Text>
+                    </Text>
+                    <TextInput
+                        placeholder='Username'
+                        style={textInputStyles.retroTextInput}
+                        value={username}
+                        onChangeText={setUsername}
+                        autoCapitalize="none"
+                    />
+                    {username.length > 0 && username.length < 5 && (
+                        <Text style={{ color: 'red', width: '80%', marginTop: 2, fontSize: 12 }}>
+                            Username must have at least 5 characters.
+                        </Text>
+                    )}
+                </View>
+                <View style={{ alignSelf: 'center', width: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ marginBottom: 4, color: '#043b64', fontWeight: 'bold', width: '80%', }}>
+                        Password <Text style={{ color: 'red' }}>*</Text>
+                    </Text>
+                    <TextInput
+                        placeholder='Password'
+                        secureTextEntry={!showPassword}
+                        style={textInputStyles.retroTextInput}
+                        value={password}
+                        onChangeText={text => {
+                            setPassword(text);
+                            if (text.length < 5) {
+                                setErrorMessage('Password must have at least 5 characters.');
+                            } else {
+                                setErrorMessage('');
+                            }
+                        }}
+                    />
+                    {password.length > 0 && password.length < 5 && (
+                        <Text style={{ color: 'red', width: '80%', marginTop: 2, fontSize: 12 }}>
+                            Password must have at least 5 characters.
+                        </Text>
+                    )}
+                </View>
+                {errorMessage !== '' && (
+                    <Text style={{ color: 'red', width: '80%', textAlign: 'center', marginTop: 4, fontSize: 13 }}>
+                        {errorMessage}
+                    </Text>
+                )}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: "80%", alignItems: 'center', marginVertical: 10, paddingLeft: 1 }}>
                     <Text style={{ marginRight: 8, color: '#043b64', textDecorationLine: 'underline' }} onPress={() => setPasswordReset(true)}>Forgot Password?</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>

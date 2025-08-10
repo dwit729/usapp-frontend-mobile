@@ -167,7 +167,8 @@ export default function guestboard() {
     const activateAISpeech = async (text: string) => {
         try {
             const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
-                "text": text
+                "text": text,
+                "pitch": 1
             });
             const data = await response.data;
             console.log(response.data); // Base64 encoded audio content
@@ -294,7 +295,7 @@ export default function guestboard() {
                                         renderItem={({ item: button, index }) => (
                                             <TouchableOpacity
                                                 key={index}
-                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
+                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory), height: height / 4.5 }]}
                                                 onPress={() => handleBoardButtonPress(button)}
                                             >
                                                 <View style={styles.boardImage} />
@@ -348,7 +349,7 @@ export default function guestboard() {
                             onValueChange={toggleSwitch}
                             style={styles.switch}
                         />
-                        <Text style={styles.iconText}>TOGGLE</Text>
+                        <Text style={styles.iconText}>AUTO SPEAK</Text>
                     </View>
                 </View>
             </View>
@@ -374,7 +375,7 @@ export default function guestboard() {
                 </View>
             </Modal>
             <Modal
-                statusBarTranslucent={false}
+                statusBarTranslucent={true}
                 animationType="fade"
                 transparent={true}
                 visible={configLoading}
@@ -438,8 +439,6 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#BEE6EA",
-        borderTopLeftRadius: 20,
-        borderBottomLeftRadius: 20,
         padding: 10,
     },
     panelHeader: {
@@ -457,12 +456,13 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 10,
         width: "90%",
-        height: "auto",
+        height: "20%",
         minHeight: 80,
     },
     iconText: {
         color: "#fff",
         fontSize: 16,
+        marginTop: 10,
         width: "100%",
         textAlign: "center",
         fontWeight: "bold",
@@ -502,22 +502,19 @@ const styles = StyleSheet.create({
         width: "100%",
         marginTop: 10,
         maxHeight: "100%",
+        paddingBottom: 5
 
     },
     boardButton: {
         width: 100,
-        height: 120,
+        maxHeight: 140,
+        minHeight: 100,
         margin: 5,
         borderRadius: 10,
         alignItems: "center",
         justifyContent: "flex-end",
         padding: 5,
         gap: 5,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
     },
     boardImage: {
         backgroundColor: "#fff",
@@ -525,11 +522,6 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         borderTopRightRadius: 6,
         borderTopLeftRadius: 6,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
     },
 
     boardButtonText: {
@@ -554,7 +546,8 @@ const styles = StyleSheet.create({
         width: "auto"
     },
     modalContainer: {
-        flex: 1,
+        width: "100%",
+        height: "100%",
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "rgba(0, 0, 0, 0.5)",

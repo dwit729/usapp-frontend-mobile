@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal } from 'react-native'
 import React, { useEffect, useState, useContext, useCallback } from 'react'
 import { BackHandler } from 'react-native'
-import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons, Entypo, FontAwesome6 } from '@expo/vector-icons'
 import axios from 'axios'
 import { Audio } from 'expo-av'
@@ -9,11 +8,22 @@ import * as FileSystem from 'expo-file-system'
 import { UserContext } from '@/contexts/UserContext'
 import { BoardContext } from '@/contexts/BoardContext'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import * as Progress from 'react-native-progress';
 
-export default function guestboard() {
+// Extend globalThis to include __boardPageOpenedAt
+declare global {
+    // eslint-disable-next-line no-var
+    var __boardPageOpenedAt: number | undefined;
+}
+
+
+export default function guestboard({ navigation }: { navigation: any }) {
+    const { width, height } = Dimensions.get('window');
     const { user, setUser } = useContext(UserContext);
     const { board, setBoard } = useContext(BoardContext);
-    const [UserData, setUserData] = useState<{ boardPreference: string; preferredVoice?: number; preferredPitch?: number }>({ boardPreference: "left" });
+    const [boardName, setboardName] = useState('');
+    const [UserData, setUserData] = useState<{ boardPreference: string; preferredVoice?: number; preferredPitch?: number; preferredSpeed?: number }>({ boardPreference: "left" });
     const [CurrentBoard, setCurrentBoard] = useState();
     const [AISentence, setAISentence] = useState("");
     const [loading, setLoading] = useState(false); // Loading state
@@ -28,7 +38,10 @@ export default function guestboard() {
     const [aiLoading, setAiLoading] = useState(false); // For AI sentence building
     const [configLoading, setConfigLoading] = useState(false); // For board/user config
     const [containerWidth, setContainerWidth] = useState(0);
-
+    const [PressTally, setPressTally] = useState<Record<string, number>>({});
+    const [currentEmotion, setcurrentEmotion] = useState("Masaya");
+    const [showEmotionModal, setshowEmotionModal] = useState(false);
+    const [ProgressData, setProgressData] = useState(0);
 
 
 
@@ -66,6 +79,7 @@ export default function guestboard() {
                 const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/${board.id}/getboard`);
                 setCurrentBoard(response.data);
                 settestButtons(response.data.buttons);
+                setboardName(response.data.boardName);
             } catch (error) {
                 console.error('Error fetching default buttons:', error);
                 Alert.alert('Error', 'Failed to fetch user boards');
@@ -88,6 +102,7 @@ export default function guestboard() {
                         text: button.buttonName,
                         pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 1),
                         voice: ((UserData.preferredVoice) ? UserData.preferredVoice : 0),
+                        speed: ((UserData.preferredSpeed) ? UserData.preferredSpeed : 1),
                     });
                     const base64Audio = response.data;
                     const uri = FileSystem.cacheDirectory + `${button.buttonName}_tts.mp3`;
@@ -95,6 +110,7 @@ export default function guestboard() {
                         encoding: FileSystem.EncodingType.Base64,
                     });
                     setButtonSounds(prev => ({ ...prev, [button.buttonName]: uri }));
+                    setProgressData((prev) => prev + (100 / testButtons.length));
                 } catch (error) {
                     console.error(`Failed to preload sound for ${button.buttonName}:`, error);
                 }
@@ -128,7 +144,8 @@ export default function guestboard() {
         setAiLoading(true); // Start AI loading
         try {
             const response = await axios.post('https://usapp-backend.vercel.app/api/board/buildSentence', {
-                "text": text
+                "text": text,
+                "emotion": currentEmotion, // Use currentEmotion state
             });
             const data = await response.data;
 
@@ -150,8 +167,9 @@ export default function guestboard() {
         try {
             const response = await axios.post('https://usapp-backend.vercel.app/api/board/selected', {
                 "text": text,
-                pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 1),
+                pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 3),
                 voice: ((UserData.preferredVoice) ? UserData.preferredVoice : 0),
+                speed: ((UserData.preferredSpeed) ? UserData.preferredSpeed : 1),
             });
             const data = await response.data;
 
@@ -171,14 +189,22 @@ export default function guestboard() {
 
 
 
+
     // Update handleBoardButtonPress to play sound
     const handleBoardButtonPress = (button: { buttonCategory: string; buttonImagePath: string; buttonName: string }) => {
+        setPressTally((prev) => ({
+            ...prev,
+            [button.buttonName]: (prev[button.buttonName] || 0) + 1,
+        }));
+        console.log(PressTally)
         if (isSwitchOn) {
             playButtonSound(button.buttonName);
         }
         else {
             setSelectedWords((prev) => [...prev, button]);
         }
+        console.log(PressTally)
+
     }
 
     const activateAISpeech = async (text: string) => {
@@ -187,6 +213,8 @@ export default function guestboard() {
                 "text": text,
                 pitch: ((UserData.preferredPitch) ? UserData.preferredPitch : 1),
                 voice: ((UserData.preferredVoice) ? UserData.preferredVoice : 0),
+                emotion: currentEmotion,
+                speed: ((UserData.preferredSpeed) ? UserData.preferredSpeed : 1),
             });
             const data = await response.data;
 
@@ -226,12 +254,73 @@ export default function guestboard() {
         }
     };
 
+    /**
+     * Logs screen time for the current user.
+     * @param duration Time spent in milliseconds
+     * @param activityType Type of activity (e.g., "Board", "Settings")
+     * @param timestamp Optional ISO timestamp
+     */
+    const logScreenTime = async (
+        duration: number,
+        activityType: string,
+        timestamp?: string
+    ) => {
+        if (!user?.userId || !duration || !activityType) return;
+        try {
+            await axios.post(
+                `https://usapp-backend.vercel.app/api/users/${user.userId}/log-screen-time`,
+                {
+                    duration,
+                    activityType,
+                    timestamp: timestamp || new Date().toISOString(),
+                }
+            );
+        } catch (err) {
+            console.error("Failed to log screen time:", err);
+        }
+    };
+
+    /**
+     * Logs board usage for the current user and board.
+     * @param boardId The board's ID
+     * @param buttonPresses Object mapping buttonId to press count
+     */
+    const logBoardUsage = async (
+        boardId: string,
+        buttonPresses: Record<string, number>
+    ) => {
+        if (!user?.userId || !boardId) return;
+        try {
+            await axios.post(
+                `https://usapp-backend.vercel.app/api/users/${user.userId}/${boardId}/log-board-usage`,
+                { buttonPresses }
+            );
+        } catch (err) {
+            console.error("Failed to log board usage:", err);
+        }
+    };
+
+    const pressTallyRef = React.useRef(PressTally);
     useEffect(() => {
+        pressTallyRef.current = PressTally;
+    }, [PressTally]);
+
+    useEffect(() => {
+
+        // Use a ref to always access the latest PressTally inside the handler
+
+
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            logBoardUsage(board.id, pressTallyRef.current); // Use ref here
+            console.log("Board usage logged:", pressTallyRef.current); // Use ref here
             Alert.alert('Hold on!', 'Are you sure you want to exit the app?', [
                 { text: 'Cancel', style: 'cancel', onPress: () => null },
                 {
                     text: 'YES', onPress: () => {
+                        // Log screen time before exiting
+                        const duration = Date.now() - (globalThis.__boardPageOpenedAt || Date.now());
+                        logScreenTime(duration, "Board", new Date().toISOString());
+
                         router.dismiss()
                     }
                 },
@@ -244,6 +333,13 @@ export default function guestboard() {
 
     return (
         <View style={styles.container}>
+            <Stack.Screen options={{
+                title: `${boardName}`,
+                headerLeft: () => null,
+                headerTitleAlign: "center",
+                headerTintColor: "#ffffff",
+                headerBackVisible: false,
+            }} />
             <View style={[styles.row, { maxWidth: "100%", flexDirection: (UserData.boardPreference === "right") ? "row" : "row-reverse" }]}>
                 <View style={styles.leftPanel}>
                     <View style={styles.topright}>
@@ -283,7 +379,7 @@ export default function guestboard() {
                                         renderItem={({ item: button, index }) => (
                                             <TouchableOpacity
                                                 key={index}
-                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
+                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory), height: height / 4.5 }]}
                                                 onPress={() => handleBoardButtonPress(button)}
                                             >
                                                 <View style={styles.boardImage} />
@@ -300,7 +396,7 @@ export default function guestboard() {
                     </View>
                 </View>
                 <View style={styles.rightPanel}>
-                    <Text style={styles.panelHeader}>CONTROLS</Text>
+
                     <TouchableOpacity style={styles.iconButton} onPress={() => {
                         if (selectedWords.length > 0) {
                             const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
@@ -339,6 +435,27 @@ export default function guestboard() {
                         />
                         <Text style={[styles.iconText, { marginTop: 5 }]}>AUTO-SPEAK</Text>
                     </View>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => setshowEmotionModal(true)}>
+                        {currentEmotion === "patanong" && (
+                            <MaterialCommunityIcons name="help-circle-outline" size={32} color="#fff" />
+                        )}
+                        {currentEmotion === "masaya" && (
+                            <MaterialCommunityIcons name="emoticon-happy-outline" size={32} color="#fff" />
+                        )}
+                        {currentEmotion === "malungkot" && (
+                            <MaterialCommunityIcons name="emoticon-sad-outline" size={32} color="#fff" />
+                        )}
+                        {currentEmotion === "galit" && (
+                            <MaterialCommunityIcons name="emoticon-angry-outline" size={32} color="#fff" />
+                        )}
+                        {currentEmotion === "malumanay" && (
+                            <MaterialCommunityIcons name="emoticon-neutral-outline" size={32} color="#fff" />
+                        )}
+                        {(currentEmotion === "" || !["patanong", "masaya", "malungkot", "galit", "malumanay"].includes(currentEmotion)) && (
+                            <MaterialCommunityIcons name="emoticon-outline" size={32} color="#fff" />
+                        )}
+                        <Text style={styles.iconText}>{currentEmotion}</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -363,16 +480,24 @@ export default function guestboard() {
                 </View>
             </Modal>
             <Modal
-                statusBarTranslucent={false}
+                statusBarTranslucent={true}
                 animationType="fade"
                 transparent={true}
                 visible={configLoading}
-                onRequestClose={() => setConfigLoading(false)}
+                onRequestClose={() => { }}
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalText}>CONFIGURING BOARD</Text>
-                        <ActivityIndicator size="large" color="#000" />
+                        <Progress.Bar
+                            progress={ProgressData / 100}
+                            width={200}
+                            color="#065a96"
+                            borderRadius={5}
+                            borderWidth={2}
+                            height={15}
+                            style={{ marginTop: 20 }}
+                        />
                     </View>
                 </View>
             </Modal>
@@ -385,11 +510,56 @@ export default function guestboard() {
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
+
                         <Text style={styles.modalText}>BUILDING SENTENCE...</Text>
                         <ActivityIndicator size={'large'} color="#000" />
                     </View>
                 </View>
             </Modal>
+            <Modal
+                statusBarTranslucent={true}
+                animationType="fade"
+                transparent={true}
+                visible={showEmotionModal}
+                onRequestClose={() => setshowEmotionModal(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalText}>Select Emotion</Text>
+                        {["patanong", "masaya", "malungkot", "galit", "malumanay"].map((emotion) => (
+                            <TouchableOpacity
+                                key={emotion}
+                                style={[
+                                    styles.modalButton,
+                                    { marginVertical: 5, backgroundColor: currentEmotion === emotion ? "#fe8917" : "#065a96" }
+                                ]}
+                                onPress={() => setcurrentEmotion(emotion)}
+                            >
+                                <Text style={styles.modalButtonText}>
+                                    {emotion === "" ? "None" : emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity
+                            style={[styles.modalButton, { marginTop: 10, backgroundColor: "#888" }]}
+                            onPress={() => setshowEmotionModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+            <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: "#fe8917" }]}
+                onPress={() => setcurrentEmotion(currentEmotion ? "" : "open")}
+            >
+                <MaterialCommunityIcons name="emoticon" size={32} color="#fff" />
+                <Text style={styles.iconText}>
+                    {currentEmotion && currentEmotion !== "open"
+                        ? `Emotion: ${currentEmotion.charAt(0).toUpperCase() + currentEmotion.slice(1)}`
+                        : "Set Emotion"}
+                </Text>
+            </TouchableOpacity>
         </View>
     )
 }
@@ -444,12 +614,13 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 10,
         width: "90%",
-        height: "auto",
+        height: "18%",
         minHeight: 80,
     },
     iconText: {
         color: "#fff",
         fontSize: 16,
+        marginTop: 10,
         width: "100%",
         textAlign: "center",
         fontWeight: "bold",
@@ -489,11 +660,13 @@ const styles = StyleSheet.create({
         width: "100%",
         marginTop: 10,
         maxHeight: "100%",
+        paddingBottom: 5
 
     },
     boardButton: {
         width: 100,
-        height: 120,
+        maxHeight: 140,
+        minHeight: 100,
         margin: 5,
         borderRadius: 10,
         alignItems: "center",

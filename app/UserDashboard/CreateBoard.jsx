@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { UserContext } from '../../contexts/UserContext';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -44,6 +43,18 @@ export default function CreateBoard() {
             }
         };
 
+        const fetchUserButtons = async () => {
+            try {
+                const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userbuttons`);
+                setTestButtons(prevButtons => [...prevButtons, ...response.data]);
+            } catch (error) {
+                window.alert(error.message);
+            } finally {
+
+            }
+        }
+
+
 
         const fetchUserData = async () => {
             setLoading(true);
@@ -57,6 +68,7 @@ export default function CreateBoard() {
             }
         };
         fetchDefaultButtons();
+        fetchUserButtons();
         fetchUserData();
 
     }, [user]);
@@ -76,8 +88,19 @@ export default function CreateBoard() {
             case 'Actions': return '#EF4444'; // red-500
             case 'Feelings': return '#22C55E'; // green-500
             case 'Things': return '#3B82F6'; // blue-500
-            case 'Places': return '#8B5CF6'; // purple-500
-            default: return '#D1D5DB'; // gray-300
+            case 'Places': return '#8B5CF6';
+            case 'Nouns': return '#FFA332'; // orange
+            case 'Pronouns': return '#FFE777'; // light yellow
+            case 'Verbs': return '#A3E264'; // light green
+            case 'Adjectives': return '#63C4FF'; // sky blue
+            case 'Prepositions & Social Words': return '#FF84C1'; // light pink
+            case 'Questions': return '#B28BFF'; // lavender
+            case 'Negation & Important Words': return '#FF4747'; // bright red
+            case 'Adverbs': return '#B98A6A'; // brown/tan
+            case 'Conjunctions': return '#FFFFFF'; // white
+            case 'Determiners': return '#595959'; // dark gray
+            default: return '#D3D3D3'; // fallback light gray// purple-500
+
         }
     };
 
@@ -95,6 +118,7 @@ export default function CreateBoard() {
                 boardName,
                 isFavorite: false,
                 buttonIds,
+                boardCategory
             });
 
 
@@ -121,15 +145,6 @@ export default function CreateBoard() {
                 <Text style={styles.loadingText}>Loading...</Text>
             </View>
         );
-    }
-    if (!user || !user.userId || !userData) {
-        return (
-            <>
-                <View>
-                    Loading User..
-                </View>
-            </>
-        )
     }
     return (
 
@@ -201,6 +216,19 @@ export default function CreateBoard() {
                             style={[styles.buttonBox, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
                         >
                             <Text style={styles.buttonText}>{button.buttonName}</Text>
+                            <TouchableOpacity
+                                onPress={() => setSelectedButtons(prev => prev.filter(b => b.id !== button.id))}
+                                style={{
+                                    marginLeft: 8,
+                                    backgroundColor: '#EF4444',
+                                    borderRadius: 16,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 2,
+                                    alignSelf: 'flex-start',
+                                }}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>x</Text>
+                            </TouchableOpacity>
                         </View>
                     ))}
                 </View>
@@ -248,6 +276,24 @@ export default function CreateBoard() {
                                 >
                                     <View style={styles.imagePlaceholder} />
                                     <Text style={styles.buttonLabel}>{button.buttonName}</Text>
+                                    {isSelected && (
+                                        <View
+                                            style={{
+                                                position: 'absolute',
+                                                top: -10,
+                                                right: -10,
+                                                backgroundColor: 'white',
+                                                borderRadius: 12,
+                                                paddingHorizontal: 10,
+                                                paddingVertical: 5,
+                                                borderWidth: 5,
+                                                borderColor: 'black',
+                                                zIndex: 2,
+                                            }}
+                                        >
+                                            <Text style={{ color: 'black', fontSize: 20, fontWeight: 'bold' }}>&#x2714;</Text>
+                                        </View>
+                                    )}
                                 </TouchableOpacity>
                             );
                         })}
@@ -314,7 +360,7 @@ const styles = StyleSheet.create({
     selectedButtons: {
         backgroundColor: 'white',
         borderWidth: 2,
-        borderColor: 'black',
+        borderColor: '#22C55E',
         padding: 8,
         borderRadius: 8,
         flexDirection: 'row',
@@ -325,11 +371,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     buttonText: {
         fontWeight: 'bold',
         color: 'black',
-        fontSize: 18
+        fontSize: 18,
+        backgroundColor: 'white',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 4,
+        justifyContent: 'center',
     },
     clearButton: {
         backgroundColor: '#EF4444',
@@ -366,7 +419,7 @@ const styles = StyleSheet.create({
         margin: 4,
     },
     selectedButton: {
-        borderWidth: 3,
+        borderWidth: 5,
         borderColor: 'black',
     },
     imagePlaceholder: {
@@ -416,7 +469,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1,

@@ -1,4 +1,5 @@
-import { View, Text, Image, Alert, TouchableOpacity } from 'react-native'
+import { View, Text, Image, Alert, TouchableOpacity, Dimensions, ScrollView, TextInput, StyleSheet } from 'react-native'
+import { Dropdown } from 'react-native-element-dropdown';
 import React, { useContext, useState, useEffect, useCallback } from 'react'
 import { UserContext } from '../../contexts/UserContext';
 import axios from 'axios';
@@ -10,18 +11,31 @@ export default function MyBoards() {
     const { user, setUser } = useContext(UserContext);
     const { board, setBoard } = useContext(BoardContext);
     const [UserBoard, setUserBoard] = useState();
-    const [UserBoards, setUserBoards] = useState<{ boardName: string }[]>([]);
+    const [UserBoards, setUserBoards] = useState<{ boardName: string; boardCategory: string; category?: string }[]>([]);
     const [Loading, setLoading] = useState(false);
     const [UserData, setUserData] = useState();
+    const [DisplayName, setDisplayName] = useState();
+    const { width, height } = Dimensions.get('window');
 
+    const [searchText, setSearchText] = useState<string>('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
+    const filteredBoards = UserBoards.filter(board =>
+        (selectedCategory === 'All' || board.boardCategory === selectedCategory) &&
+        board.boardName.toLowerCase().includes(searchText.toLowerCase())
+    );
 
     const getCategoryColor = (category: any) => {
         switch (category) {
-            case 'People': return '#FACC15'; // yellow-400
-            case 'Actions': return '#EF4444'; // red-500
-            case 'Feelings': return '#22C55E'; // green-500
-            case 'Things': return '#3B82F6'; // blue-500
-            case 'Places': return '#8B5CF6'; // purple-500
+            case 'Paaralan': return '#FACC15'; // yellow-400
+            case 'Bahay': return '#EF4444'; // red-500
+            case 'Pagkain': return '#22C55E'; // green-500
+            case 'Kalusugan': return '#3B82F6'; // blue-500
+            case 'Pamilya': return '#8B5CF6'; // purple-500
+            case 'Pang-araw-araw na Gawain': return '#FB923C'; // orange-400
+            case 'Sarili': return '#A3E635'; // lime-400
+            case 'Laro at Libangan': return '#F472B6'; // pink-400
+            case 'Panahon at Kalikasan': return '#38BDF8'; // sky-400
             default: return '#D1D5DB'; // gray-300
         }
     };
@@ -33,6 +47,7 @@ export default function MyBoards() {
             try {
                 const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`);
                 setUserData({ ...response.data, userId: user.userId });
+                setDisplayName((response.data.userType === 'Guardian' ? response.data.endname : response.data.username) || 'User');
             } catch (error) {
                 console.error('Error fetching user data:', error);
             } finally {
@@ -71,62 +86,208 @@ export default function MyBoards() {
     );
 
     return (
-        <View style={{ justifyContent: "flex-start", alignItems: "center", height: "100%", gap: "1%", backgroundColor: "#fff6eb" }}>
-            <Image resizeMode='cover' style={{ height: 100, width: '100%', marginBottom: 20 }} source={require('../../assets/backgrounds/header_background_img.png')} />
-            <View style={{ width: '80%', minWidth: 400 }}>
-                <Text style={{ fontSize: 30, fontWeight: "bold", color: "#000", width: '100%', backgroundColor: "white", textAlign: "center", paddingVertical: 2, borderWidth: 1.5, borderStyle: 'dashed' }}>MY BOARDS</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignContent: 'center', padding: 5, flexWrap: 'wrap' }}>
-                    {
-                        UserBoards.map((board, index) => {
-                            return (<>
-                                <TouchableOpacity key={index} onPress={async () => {
-                                    await setBoard(board);
-                                    goToBoard();
-                                }}>
-                                    <View
-                                        style={{
-                                            width: 100,
-                                            height: 100,
-                                            padding: 8,
-                                            borderRadius: 8,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            margin: 4,
-                                            backgroundColor: 'blue'
-                                        }}
-                                    >
-                                        <View style={{
-                                            width: '100%',
-                                            height: '50%',
-                                            backgroundColor: 'white',
-                                            borderRadius: 8,
-                                            marginBottom: 8,
-                                        }}>
-
-                                        </View>
-
-                                        <Text adjustsFontSizeToFit style={{
-                                            color: 'black',
-                                            fontWeight: '600',
-                                            fontSize: 18,
-                                            backgroundColor: 'white',
-                                            width: '100%',
-                                            textAlign: 'center',
-                                            borderRadius: 2,
-                                            paddingHorizontal: 2,
-                                            flexGrow: 1,
-                                            textAlignVertical: 'center'
-                                        }}>{board.boardName}</Text>
-                                    </View>
-                                </TouchableOpacity >
-                            </>
-
-                            )
-                        })
-                    }
+        <>
+            {Loading && (
+                <View style={styles.loadingOverlay}>
+                    <Text style={styles.loadingText}>Loading...</Text>
                 </View>
-            </View>
+            )}
 
-        </View >
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <View style={styles.mainContainer}>
+                    <Text adjustsFontSizeToFit style={styles.title}>{DisplayName}'s Boards</Text>
+
+                    {/* Search Bar */}
+                    <View style={styles.searchBarContainer}>
+                        <View style={styles.searchBar}>
+                            <Text style={styles.searchIcon}>🔍</Text>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search boards..."
+                                value={searchText}
+                                onChangeText={setSearchText}
+                                autoCapitalize="none"
+                            />
+                        </View>
+                    </View>
+
+                    {/* Filter by Category using Dropdown */}
+                    <View style={styles.dropdownContainer}>
+                        <Dropdown
+                            style={styles.dropdown}
+                            placeholderStyle={styles.dropdownPlaceholder}
+                            selectedTextStyle={styles.dropdownSelectedText}
+                            data={[
+                                { label: 'All', value: 'All' },
+                                { label: 'Paaralan', value: 'Paaralan' },
+                                { label: 'Bahay', value: 'Bahay' },
+                                { label: 'Pagkain', value: 'Pagkain' },
+                                { label: 'Kalusugan', value: 'Kalusugan' },
+                                { label: 'Pamilya', value: 'Pamilya' },
+                                { label: 'Pang-araw-araw na Gawain', value: 'Pang-araw-araw na Gawain' },
+                                { label: 'Sarili', value: 'Sarili' },
+                                { label: 'Laro at Libangan', value: 'Laro at Libangan' },
+                                { label: 'Panahon at Kalikasan', value: 'Panahon at Kalikasan' }
+                            ]}
+                            labelField="label"
+                            valueField="value"
+                            placeholder="Select Category"
+                            value={selectedCategory}
+                            onChange={item => setSelectedCategory(item.value)}
+                        />
+                    </View>
+
+                    <View style={styles.boardsContainer}>
+                        {
+                            filteredBoards.map((board, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.boardTouchable}
+                                    onPress={async () => {
+                                        await setBoard(board);
+                                        goToBoard();
+                                    }}>
+                                    <View
+                                        style={[
+                                            styles.boardCard,
+                                            { backgroundColor: getCategoryColor(board.boardCategory) }
+                                        ]}
+                                    >
+                                        <View style={styles.boardImage} />
+                                        <Text adjustsFontSizeToFit style={styles.boardName}>{board.boardName}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            ))
+                        }
+                    </View>
+                </View>
+            </ScrollView>
+        </>
     )
 }
+const styles = StyleSheet.create({
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: '#fff6eb',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10
+    },
+    loadingText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333'
+    },
+    scrollContainer: {
+        justifyContent: "flex-start",
+        alignItems: "center",
+        minHeight: Dimensions.get('window').height,
+        backgroundColor: "#fff6eb"
+    },
+    mainContainer: {
+        width: '80%',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        paddingTop: 20
+    },
+    title: {
+        fontSize: 30,
+        fontWeight: "bold",
+        color: "#000",
+        width: '100%',
+        backgroundColor: "white",
+        textAlign: "center",
+        paddingVertical: 2,
+        borderWidth: 1.5,
+        borderStyle: 'dashed'
+    },
+    searchBarContainer: {
+        width: '100%',
+        marginTop: 20,
+        marginBottom: 10
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        paddingHorizontal: 10,
+        height: 40
+    },
+    searchIcon: {
+        marginRight: 8,
+        color: '#888'
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16
+    },
+    dropdownContainer: {
+        width: '100%',
+        marginBottom: 16
+    },
+    dropdown: {
+        height: 40,
+        borderColor: '#ccc',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#fff',
+    },
+    dropdownPlaceholder: {
+        color: '#888',
+        fontSize: 16
+    },
+    dropdownSelectedText: {
+        color: '#222',
+        fontSize: 16
+    },
+    boardsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        flexWrap: 'wrap',
+        minHeight: Dimensions.get('window').height * .7,
+        width: '100%',
+        marginTop: 10,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5
+    },
+    boardTouchable: {},
+    boardCard: {
+        width: 100,
+        height: 100,
+        padding: 8,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: 4,
+    },
+    boardImage: {
+        width: '100%',
+        height: '50%',
+        backgroundColor: 'white',
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    boardName: {
+        color: 'black',
+        fontWeight: '600',
+        fontSize: 18,
+        backgroundColor: 'white',
+        width: '100%',
+        textAlign: 'center',
+        borderRadius: 2,
+        paddingHorizontal: 2,
+        flexGrow: 1,
+        textAlignVertical: 'center'
+    }
+});
