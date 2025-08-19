@@ -59,6 +59,21 @@ export default function Accounts() {
     }, [user]);
 
     const handleSave = async () => {
+        // Basic validation
+        if (!userData.username || userData.username.trim() === '') {
+            alert('Username is required.');
+            return;
+        }
+        if (userData.userType === 'Guardian') {
+            if (!userData.endName || userData.endName.trim() === '') {
+                alert('End user name is required.');
+                return;
+            }
+            if (!userData.endAge || isNaN(Number(userData.endAge))) {
+                alert('End user age must be a number.');
+                return;
+            }
+        }
         setSubmitting(true);
         setIsEditing(false);
         try {
@@ -94,46 +109,7 @@ export default function Accounts() {
                         />
                     </View>
 
-                    {/* Reset Password Button and Modal */}
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Reset Password</Text>
-                        <ActionButton
-                            title="Reset Password"
-                            color="#FF9800"
-                            onPress={() => setShowPasswordModal(true)}
-                            disabled={!isEditing}
-                        />
-                    </View>
-                    {/* Password Reset Modal */}
-                    {showPasswordModal && (
-                        <View style={styles.modalOverlay}>
-                            <View style={styles.modalContent}>
-                                <Text style={styles.label}>Enter New Password</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="New password"
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry={true}
-                                />
-                                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                                    <ActionButton
-                                        title="Cancel"
-                                        color="#888"
-                                        onPress={() => setShowPasswordModal(false)}
-                                    />
-                                    <ActionButton
-                                        title="Save"
-                                        color="#4CAF50"
-                                        onPress={() => {
-                                            setShowPasswordModal(false);
-                                            // Optionally handle password save here
-                                        }}
-                                    />
-                                </View>
-                            </View>
-                        </View>
-                    )}
+
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Board Preference</Text>
                         <Dropdown
