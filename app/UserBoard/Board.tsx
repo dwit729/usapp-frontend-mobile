@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal, ScrollView, Image } from 'react-native'
+import * as NavigationBar from 'expo-navigation-bar'
 import React, { useEffect, useState, useContext, useCallback } from 'react'
 import { BackHandler } from 'react-native'
 import { MaterialCommunityIcons, Entypo, FontAwesome6 } from '@expo/vector-icons'
@@ -16,6 +17,7 @@ declare global {
     // eslint-disable-next-line no-var
     var __boardPageOpenedAt: number | undefined;
 }
+
 
 
 export default function guestboard({ navigation }: { navigation: any }) {
@@ -306,10 +308,6 @@ export default function guestboard({ navigation }: { navigation: any }) {
     }, [PressTally]);
 
     useEffect(() => {
-
-        // Use a ref to always access the latest PressTally inside the handler
-
-
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             logBoardUsage(board.id, pressTallyRef.current); // Use ref here
             console.log("Board usage logged:", pressTallyRef.current); // Use ref here
@@ -332,235 +330,257 @@ export default function guestboard({ navigation }: { navigation: any }) {
     }, []);
 
     return (
-        <View style={styles.container}>
-            <Stack.Screen options={{
-                title: `${boardName}`,
-                headerLeft: () => null,
-                headerTitleAlign: "center",
-                headerTintColor: "#ffffff",
-                headerBackVisible: false,
-            }} />
-            <View style={[styles.row, { maxWidth: "100%", flexDirection: (UserData.boardPreference === "right") ? "row" : "row-reverse" }]}>
-                <View style={styles.leftPanel}>
-                    <View style={styles.topright}>
-                        <View style={styles.collection}>
-                            <FlatList
-
-                                data={selectedWords}
-                                keyExtractor={(_, index) => index.toString()}
-                                horizontal
-                                renderItem={({ item, index }) => (
-                                    <View style={styles.selectedWord}>
-                                        <Text style={{}}>{(item as { buttonName: string }).buttonName}</Text>
-                                        <TouchableOpacity onPress={() => handleDeleteWord(index)}>
-                                            <FontAwesome6 name="delete-left" size={20} color="red" />
+        <>
+            <SafeAreaProvider style={{ flex: 1, backgroundColor: "#fff6eb" }}   >
+                <SafeAreaView style={{ minHeight: height, flex: 1, display: "flex", justifyContent: 'center', alignItems: 'center', backgroundColor: "#fff6eb", paddingHorizontal: 10 }}>
+                    <Modal
+                        statusBarTranslucent={false}
+                        animationType="fade"
+                        transparent={true}
+                        visible={configLoading}
+                        onRequestClose={() => { }}
+                    >
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalText}>CONFIGURING BOARD</Text>
+                                <Progress.Bar
+                                    progress={ProgressData / 100}
+                                    width={200}
+                                    color="#065a96"
+                                    borderRadius={5}
+                                    borderWidth={2}
+                                    height={15}
+                                    style={{ marginTop: 20 }}
+                                />
+                            </View>
+                        </View>
+                    </Modal>
+                    {configLoading ? null : (
+                        <View style={[styles.container, { minHeight: height, backgroundColor: "#fff6eb" }]}>
+                            <Stack.Screen options={{
+                                title: `${boardName}`,
+                                headerLeft: () => null,
+                                headerTitleAlign: "center",
+                                headerTintColor: "#ffffff",
+                                headerBackVisible: false,
+                            }} />
+                            <View style={[styles.row, { flexDirection: (UserData.boardPreference.toLowerCase() === "left") ? "row-reverse" : "row" }]}>
+                                <View style={styles.leftPanel}>
+                                    <View style={styles.topright}>
+                                        <View style={styles.collection}>
+                                            <SafeAreaProvider>
+                                                <SafeAreaView>
+                                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                                        {selectedWords.map((item, index) => (
+                                                            <View key={index} style={styles.selectedWord}>
+                                                                <Text>{item.buttonName}</Text>
+                                                                <TouchableOpacity onPress={() => handleDeleteWord(index)}>
+                                                                    <FontAwesome6 name="delete-left" size={20} color="red" />
+                                                                </TouchableOpacity>
+                                                            </View>
+                                                        ))}
+                                                    </ScrollView>
+                                                </SafeAreaView>
+                                            </SafeAreaProvider>
+                                        </View>
+                                        <TouchableOpacity style={styles.clearbutton} onPress={handleClearAll}>
+                                            <MaterialCommunityIcons name='delete' size={32} color="#fff" />
                                         </TouchableOpacity>
                                     </View>
-                                )}
-                            />
-                        </View>
-                        <TouchableOpacity style={styles.clearbutton} onPress={handleClearAll}>
-                            <MaterialCommunityIcons name='delete' size={32} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.boardButtons} onLayout={onLayout}>
-                        <SafeAreaProvider>
-                            <SafeAreaView>
-                                {(containerWidth > 0) ? (
-                                    <FlatList
-                                        key={numColumns}
-                                        style={{ width: "100%", height: "100%" }}
-                                        data={testButtons}
-                                        keyExtractor={(_, index) => index.toString()}
-                                        numColumns={numColumns}
-                                        pagingEnabled
-                                        showsVerticalScrollIndicator={true}
-                                        scrollEnabled={true}
-                                        renderItem={({ item: button, index }) => (
-                                            <TouchableOpacity
-                                                key={index}
-                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory), height: height / 4.5 }]}
-                                                onPress={() => handleBoardButtonPress(button)}
-                                            >
-                                                <View style={styles.boardImage} />
-                                                <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.boardButtonText}>{button.buttonName}</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    />
-                                ) : (
-                                    <ActivityIndicator size="large" color="#000" />
-                                )}
-                            </SafeAreaView>
-                        </SafeAreaProvider>
+                                    <View style={styles.boardButtons} onLayout={onLayout}>
+                                        <SafeAreaProvider>
+                                            <SafeAreaView>
+                                                {(containerWidth > 0) ? (
+                                                    <FlatList
+                                                        key={numColumns}
+                                                        style={{ width: "100%", height: "100%" }}
+                                                        data={testButtons}
+                                                        keyExtractor={(_, index) => index.toString()}
+                                                        numColumns={numColumns}
+                                                        pagingEnabled
+                                                        showsVerticalScrollIndicator={true}
+                                                        scrollEnabled={true}
+                                                        renderItem={({ item: button, index }) => (
+                                                            <TouchableOpacity
+                                                                key={index}
+                                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory), height: height / 4.5 }]}
+                                                                onPress={() => handleBoardButtonPress(button)}
+                                                            >
+                                                                {button.buttonImagePath ? (
+                                                                    <Image
+                                                                        source={{ uri: button.buttonImagePath }}
+                                                                        style={styles.boardImage}
+                                                                        resizeMode="cover"
+                                                                    />
+                                                                ) : (
+                                                                    <View style={styles.boardImage} />
+                                                                )}
+                                                                <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.boardButtonText}>{button.buttonName}</Text>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    />
+                                                ) : (
+                                                    <ActivityIndicator size="large" color="#000" />
+                                                )}
+                                            </SafeAreaView>
+                                        </SafeAreaProvider>
 
-                    </View>
-                </View>
-                <View style={styles.rightPanel}>
+                                    </View>
+                                </View>
+                                <View style={styles.rightPanel}>
 
-                    <TouchableOpacity style={styles.iconButton} onPress={() => {
-                        if (selectedWords.length > 0) {
-                            const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
-                            activateTextToSpeech(textToSpeak);
-                        } else {
-                            Alert.alert("No words selected", "Please select words to speak.");
-                        }
-                    }}>
-                        <MaterialCommunityIcons name='text-to-speech' size={32} color="#fff" />
-                        <Text style={styles.iconText}>TALK</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => {
-                        if (selectedWords.length > 0) {
-                            const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
-                            handleBuildSentence(textToSpeak);
-                        } else {
-                            Alert.alert("No words selected", "Please select words to speak.");
-                        }
-                    }}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color="#fff" />
-                        ) : (
-                            <>
-                                <Entypo name="network" size={32} color="#fff" />
-                                <Text style={styles.iconText}>AI</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                    <View style={styles.iconButton}>
-                        <Switch
-                            trackColor={{ false: "#767577", true: "#81b0ff" }}
-                            thumbColor={isSwitchOn ? "#f5dd4b" : "#f4f3f4"}
-                            value={isSwitchOn}
-                            onValueChange={toggleSwitch}
-                            style={styles.switch}
-                        />
-                        <Text style={[styles.iconText, { marginTop: 5 }]}>AUTO-SPEAK</Text>
-                    </View>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => setshowEmotionModal(true)}>
-                        {currentEmotion === "patanong" && (
-                            <MaterialCommunityIcons name="help-circle-outline" size={32} color="#fff" />
-                        )}
-                        {currentEmotion === "masaya" && (
-                            <MaterialCommunityIcons name="emoticon-happy-outline" size={32} color="#fff" />
-                        )}
-                        {currentEmotion === "malungkot" && (
-                            <MaterialCommunityIcons name="emoticon-sad-outline" size={32} color="#fff" />
-                        )}
-                        {currentEmotion === "galit" && (
-                            <MaterialCommunityIcons name="emoticon-angry-outline" size={32} color="#fff" />
-                        )}
-                        {currentEmotion === "malumanay" && (
-                            <MaterialCommunityIcons name="emoticon-neutral-outline" size={32} color="#fff" />
-                        )}
-                        {(currentEmotion === "" || !["patanong", "masaya", "malungkot", "galit", "malumanay"].includes(currentEmotion)) && (
-                            <MaterialCommunityIcons name="emoticon-outline" size={32} color="#fff" />
-                        )}
-                        <Text style={styles.iconText}>{currentEmotion}</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+                                    <SafeAreaProvider>
+                                        <SafeAreaView>
+                                            <ScrollView contentContainerStyle={{ alignItems: 'center', justifyContent: 'flex-start' }}>
+                                                <TouchableOpacity style={styles.iconButton} onPress={() => {
+                                                    if (selectedWords.length > 0) {
+                                                        const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
+                                                        activateTextToSpeech(textToSpeak);
+                                                    } else {
+                                                        Alert.alert("No words selected", "Please select words to speak.");
+                                                    }
+                                                }}>
+                                                    <MaterialCommunityIcons name='text-to-speech' size={32} color="#fff" />
+                                                    <Text style={styles.iconText}>TALK</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={styles.iconButton} onPress={() => {
+                                                    if (selectedWords.length > 0) {
+                                                        const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
+                                                        handleBuildSentence(textToSpeak);
+                                                    } else {
+                                                        Alert.alert("No words selected", "Please select words to speak.");
+                                                    }
+                                                }}>
+                                                    {loading ? (
+                                                        <ActivityIndicator size="large" color="#fff" />
+                                                    ) : (
+                                                        <>
+                                                            <Entypo name="network" size={32} color="#fff" />
+                                                            <Text style={styles.iconText}>AI</Text>
+                                                        </>
+                                                    )}
+                                                </TouchableOpacity>
+                                                <View style={styles.iconButton}>
+                                                    <Switch
+                                                        trackColor={{ false: "#767577", true: "#81b0ff" }}
+                                                        thumbColor={isSwitchOn ? "#f5dd4b" : "#f4f3f4"}
+                                                        value={isSwitchOn}
+                                                        onValueChange={toggleSwitch}
+                                                        style={styles.switch}
+                                                    />
+                                                    <Text adjustsFontSizeToFit={true} numberOfLines={1} style={[styles.iconText, { marginTop: 5 }]}>AUTO-SPEAK</Text>
+                                                </View>
+                                                <TouchableOpacity style={[styles.iconButton, { marginBottom: 40 }]} onPress={() => setshowEmotionModal(true)}>
+                                                    {currentEmotion === "patanong" && (
+                                                        <MaterialCommunityIcons name="help-circle-outline" size={32} color="#fff" />
+                                                    )}
+                                                    {currentEmotion === "masaya" && (
+                                                        <MaterialCommunityIcons name="emoticon-happy-outline" size={32} color="#fff" />
+                                                    )}
+                                                    {currentEmotion === "malungkot" && (
+                                                        <MaterialCommunityIcons name="emoticon-sad-outline" size={32} color="#fff" />
+                                                    )}
+                                                    {currentEmotion === "galit" && (
+                                                        <MaterialCommunityIcons name="emoticon-angry-outline" size={32} color="#fff" />
+                                                    )}
+                                                    {currentEmotion === "malumanay" && (
+                                                        <MaterialCommunityIcons name="emoticon-neutral-outline" size={32} color="#fff" />
+                                                    )}
+                                                    {(currentEmotion === "" || !["patanong", "masaya", "malungkot", "galit", "malumanay"].includes(currentEmotion)) && (
+                                                        <MaterialCommunityIcons name="emoticon-outline" size={32} color="#fff" />
+                                                    )}
+                                                    <Text style={styles.iconText}>{currentEmotion}</Text>
+                                                </TouchableOpacity>
+                                            </ScrollView>
+                                        </SafeAreaView>
+                                    </SafeAreaProvider>
+                                </View>
+                            </View>
 
-            {/* Modal for AISentence */}
-            <Modal
-                statusBarTranslucent={true}
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalText}>{AISentence}</Text>
-                        <TouchableOpacity
-                            style={styles.modalButton}
-                            onPress={() => setModalVisible(false)}
-                        >
-                            <Text style={styles.modalButtonText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                statusBarTranslucent={true}
-                animationType="fade"
-                transparent={true}
-                visible={configLoading}
-                onRequestClose={() => { }}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalText}>CONFIGURING BOARD</Text>
-                        <Progress.Bar
-                            progress={ProgressData / 100}
-                            width={200}
-                            color="#065a96"
-                            borderRadius={5}
-                            borderWidth={2}
-                            height={15}
-                            style={{ marginTop: 20 }}
-                        />
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                statusBarTranslucent={true}
-                animationType="fade"
-                transparent={true}
-                visible={aiLoading}
-                onRequestClose={() => setAiLoading(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-
-                        <Text style={styles.modalText}>BUILDING SENTENCE...</Text>
-                        <ActivityIndicator size={'large'} color="#000" />
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                statusBarTranslucent={true}
-                animationType="fade"
-                transparent={true}
-                visible={showEmotionModal}
-                onRequestClose={() => setshowEmotionModal(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalText}>Select Emotion</Text>
-                        {["patanong", "masaya", "malungkot", "galit", "malumanay"].map((emotion) => (
-                            <TouchableOpacity
-                                key={emotion}
-                                style={[
-                                    styles.modalButton,
-                                    { marginVertical: 5, backgroundColor: currentEmotion === emotion ? "#fe8917" : "#065a96" }
-                                ]}
-                                onPress={() => setcurrentEmotion(emotion)}
+                            {/* Modal for AISentence */}
+                            <Modal
+                                statusBarTranslucent={true}
+                                animationType="fade"
+                                transparent={true}
+                                visible={modalVisible}
+                                onRequestClose={() => setModalVisible(false)}
                             >
-                                <Text style={styles.modalButtonText}>
-                                    {emotion === "" ? "None" : emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                                <View style={styles.modalContainer}>
+                                    <View style={styles.modalContent}>
+                                        <Text style={styles.modalText}>{AISentence}</Text>
+                                        <TouchableOpacity
+                                            style={styles.modalButton}
+                                            onPress={() => setModalVisible(false)}
+                                        >
+                                            <Text style={styles.modalButtonText}>Close</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </Modal>
+                            <Modal
+                                statusBarTranslucent={true}
+                                animationType="fade"
+                                transparent={true}
+                                visible={aiLoading}
+                                onRequestClose={() => setAiLoading(false)}
+                            >
+                                <View style={styles.modalContainer}>
+                                    <View style={styles.modalContent}>
+
+                                        <Text style={styles.modalText}>BUILDING SENTENCE...</Text>
+                                        <ActivityIndicator size={'large'} color="#000" />
+                                    </View>
+                                </View>
+                            </Modal>
+                            <Modal
+                                statusBarTranslucent={true}
+                                animationType="fade"
+                                transparent={true}
+                                visible={showEmotionModal}
+                                onRequestClose={() => setshowEmotionModal(false)}
+                            >
+                                <View style={styles.modalContainer}>
+                                    <View style={styles.modalContent}>
+                                        <Text style={styles.modalText}>Select Emotion</Text>
+                                        {["patanong", "masaya", "malungkot", "galit", "malumanay"].map((emotion) => (
+                                            <TouchableOpacity
+                                                key={emotion}
+                                                style={[
+                                                    styles.modalButton,
+                                                    { marginVertical: 5, backgroundColor: currentEmotion === emotion ? "#fe8917" : "#065a96" }
+                                                ]}
+                                                onPress={() => setcurrentEmotion(emotion)}
+                                            >
+                                                <Text style={styles.modalButtonText}>
+                                                    {emotion === "" ? "None" : emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                        <TouchableOpacity
+                                            style={[styles.modalButton, { marginTop: 10, backgroundColor: "#888" }]}
+                                            onPress={() => setshowEmotionModal(false)}
+                                        >
+                                            <Text style={styles.modalButtonText}>Close</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </Modal>
+                            <TouchableOpacity
+                                style={[styles.iconButton, { backgroundColor: "#fe8917" }]}
+                                onPress={() => setcurrentEmotion(currentEmotion ? "" : "open")}
+                            >
+                                <MaterialCommunityIcons name="emoticon" size={32} color="#fff" />
+                                <Text style={styles.iconText}>
+                                    {currentEmotion && currentEmotion !== "open"
+                                        ? `Emotion: ${currentEmotion.charAt(0).toUpperCase() + currentEmotion.slice(1)}`
+                                        : "Set Emotion"}
                                 </Text>
                             </TouchableOpacity>
-                        ))}
-                        <TouchableOpacity
-                            style={[styles.modalButton, { marginTop: 10, backgroundColor: "#888" }]}
-                            onPress={() => setshowEmotionModal(false)}
-                        >
-                            <Text style={styles.modalButtonText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-            <TouchableOpacity
-                style={[styles.iconButton, { backgroundColor: "#fe8917" }]}
-                onPress={() => setcurrentEmotion(currentEmotion ? "" : "open")}
-            >
-                <MaterialCommunityIcons name="emoticon" size={32} color="#fff" />
-                <Text style={styles.iconText}>
-                    {currentEmotion && currentEmotion !== "open"
-                        ? `Emotion: ${currentEmotion.charAt(0).toUpperCase() + currentEmotion.slice(1)}`
-                        : "Set Emotion"}
-                </Text>
-            </TouchableOpacity>
-        </View>
+                        </View>
+                    )}
+                </SafeAreaView>
+            </SafeAreaProvider>
+        </>
     )
 }
 
@@ -587,7 +607,8 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#fff6eb",
-        padding: 10,
+        paddingHorizontal: 10,
+        paddingTop: 10,
 
 
     },
@@ -598,6 +619,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#BEE6EA",
         padding: 10,
+
     },
     panelHeader: {
         fontSize: 20,
@@ -614,7 +636,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 10,
         width: "90%",
-        height: "18%",
+        height: "auto",
         minHeight: 80,
     },
     iconText: {
@@ -664,7 +686,8 @@ const styles = StyleSheet.create({
 
     },
     boardButton: {
-        width: 100,
+        minWidth: 100,
+        maxWidth: 140,
         maxHeight: 140,
         minHeight: 100,
         margin: 5,

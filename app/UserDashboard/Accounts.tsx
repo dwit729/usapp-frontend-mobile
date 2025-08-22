@@ -1,11 +1,19 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Image } from 'react-native';
+import React, { useState, useContext, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, Image, Dimensions, Modal } from 'react-native';
 import ActionButton from '../../components/Buttons/ActionButton';
 import { Dropdown } from 'react-native-element-dropdown';
 import axios from 'axios';
 import { UserContext } from '../../contexts/UserContext';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+
 
 export default function Accounts() {
+    const { width, height } = Dimensions.get('window');
+    const router = useRouter();
+    const [showLeaveModal, setshowLeaveModal] = useState(false);
+
     const { user } = useContext(UserContext);
     const [userData, setUserData] = useState({
         firstName: '',
@@ -16,9 +24,10 @@ export default function Accounts() {
         age: '',
         endName: '',
         endAge: '',
-        boardPreference: 0,
+        boardPreference: '',
         preferredVoice: 0,
         preferredPitch: 0,
+        preferredSpeed: 0,
     });
     const [isEditing, setIsEditing] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -39,6 +48,14 @@ export default function Accounts() {
             case 0: return 'Low';
             case 1: return 'Medium';
             case 2: return 'High';
+        }
+    }
+
+    const getPreferredSpeedLabel = (value: any) => {
+        switch (value) {
+            case 0: return 'Slow';
+            case 1: return 'Moderate';
+            case 2: return 'Fast';
         }
     }
 
@@ -90,169 +107,224 @@ export default function Accounts() {
     };
 
     return (
-        <>
-            {Loading ? <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff6eb' }}>
-                <Text style={{ textAlign: 'center', fontSize: 18, marginTop: 20 }}>Loading...</Text>
-            </View>
-                :
-                <ScrollView contentContainerStyle={styles.container}>
-                    <Text style={styles.header}>Account Settings</Text>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Username</Text>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: isEditing ? 'white' : '#e0e0e0' }]}
-                            placeholder="Enter your username"
-                            value={userData.username}
-                            onChangeText={text => setUserData(prev => ({ ...prev, username: text }))}
-                            editable={isEditing}
-                        />
-                    </View>
-
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Board Preference</Text>
-                        <Dropdown
-                            data={[
-                                { label: 'Left', value: 'Left' },
-                                { label: 'Right', value: 'Right' },
-                            ]}
-                            value={userData.boardPreference}
-                            onChange={item => setUserData(prev => ({ ...prev, boardPreference: Number(item.value) }))}
-                            placeholder={userData.boardPreference === 1 ? 'Right' : 'Left'}
-                            disable={!isEditing}
-                            containerStyle={{ width: '100%' }}
-                            labelField="label"
-                            valueField="value"
-                            style={{
-                                backgroundColor: isEditing ? 'white' : '#e0e0e0',
-                                padding: 10,
-                                borderRadius: 5,
-                                borderWidth: 1,
-                                borderColor: '#ccc'
-                            }}
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Preferred Voice: {userData.preferredVoice}</Text>
-                        <Dropdown
-                            data={[
-                                { label: 'Male', value: '0' },
-                                { label: 'Female', value: '1' },
-                                { label: 'Child', value: '2' },
-                            ]}
-                            value={userData.preferredVoice}
-                            onChange={item => setUserData(prev => ({ ...prev, preferredVoice: Number(item.value) }))}
-                            placeholder={getPreferredVoiceLabel(userData.preferredVoice)}
-                            containerStyle={{ width: '100%' }}
-                            labelField="label"
-                            valueField="value"
-                            style={{ backgroundColor: isEditing ? 'white' : '#e0e0e0', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#ccc' }}
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Preferred Pitch</Text>
-                        <Dropdown
-                            data={[
-                                { label: 'Low', value: '0' },
-                                { label: 'Medium', value: '1' },
-                                { label: 'High', value: '2' },
-                            ]}
-                            value={userData.preferredPitch}
-                            onChange={item => setUserData(prev => ({ ...prev, preferredPitch: Number(item.value) }))}
-                            placeholder={getPreferredPitchLabel(userData.preferredPitch)}
-                            disable={!isEditing}
-                            containerStyle={{ width: '100%' }}
-                            labelField="label"
-                            valueField="value"
-                            style={{ backgroundColor: isEditing ? 'white' : '#e0e0e0', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#ccc' }}
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Preferred Voice Speed</Text>
-                        <Dropdown
-                            data={[
-                                { label: 'Low', value: '0' },
-                                { label: 'Medium', value: '1' },
-                                { label: 'High', value: '2' },
-                            ]}
-                            value={userData.preferredPitch}
-                            onChange={item => setUserData(prev => ({ ...prev, preferredPitch: Number(item.value) }))}
-                            placeholder={getPreferredPitchLabel(userData.preferredPitch)}
-                            disable={!isEditing}
-                            containerStyle={{ width: '100%' }}
-                            labelField="label"
-                            valueField="value"
-                            style={{ backgroundColor: isEditing ? 'white' : '#e0e0e0', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#ccc' }}
-                        />
-                    </View>
-
-                    {
-                        (userData.userType === 'Guardian') && (
-                            <>
-                                <Text style={{ fontWeight: 'bold', fontSize: 18 }}>END USER INFO</Text>
-
-                                <View style={styles.inputContainer}>
-                                    <Text style={styles.label}>Name</Text>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: isEditing ? 'white' : '#e0e0e0' }]}
-                                        placeholder="Enter your name"
-                                        value={userData.endName}
-                                        onChangeText={text => setUserData(prev => ({ ...prev, endName: text }))}
-                                        editable={isEditing}
-                                    />
-                                </View>
-
-                                <View style={styles.inputContainer}>
-                                    <Text style={styles.label}>Age</Text>
-                                    <TextInput
-                                        style={[styles.input, { backgroundColor: isEditing ? 'white' : '#e0e0e0' }]}
-                                        placeholder="Enter your age"
-                                        value={userData.endAge}
-                                        onChangeText={text => setUserData(prev => ({ ...prev, endAge: text }))}
-                                        keyboardType="numeric"
-                                        editable={isEditing}
-                                    />
-                                </View>
-                            </>
-                        )
-                    }
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
-                        {!isEditing ? (
-                            <ActionButton
-                                title="Edit"
-                                color="#2196F3"
-                                onPress={() => setIsEditing(true)}
-                                width="100%"
-                            />
-                        ) : (
-                            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, width: '80%' }}>
-                                <ActionButton
-                                    title="Cancel"
-                                    color="#F44336"
-                                    onPress={() => setIsEditing(false)}
-                                    width="50%"
-                                />
-                                <ActionButton
-                                    title="Save"
-                                    color="#4CAF50"
-                                    onPress={handleSave}
-                                    width="50%"
-                                />
-                            </View>
-                        )}
-                    </View>
-
-                    {Submitting && (
-                        <View style={styles.modalOverlay}>
-                            <View style={styles.modalContent}>
-                                <Text style={{ textAlign: 'center', fontSize: 18 }}>Saving...</Text>
-                            </View>
+        <SafeAreaProvider>
+            <SafeAreaView>
+                <ScrollView>
+                    <>
+                        {Loading ? <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff6eb', minHeight: height }}>
+                            <Text style={{ textAlign: 'center', fontSize: 18, marginTop: 20 }}>Loading...</Text>
                         </View>
-                    )}
+                            :
+                            <View style={styles.container}>
+                                <Text style={styles.header}>Account Settings</Text>
+
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Username</Text>
+                                    <TextInput
+                                        style={[styles.input, { backgroundColor: isEditing ? 'white' : '#e0e0e0' }]}
+                                        placeholder="Enter your username"
+                                        value={userData.username}
+                                        onChangeText={text => setUserData(prev => ({ ...prev, username: text }))}
+                                        editable={isEditing}
+                                    />
+                                </View>
+
+
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Board Preference</Text>
+                                    <Dropdown
+                                        data={[
+                                            { label: 'Left', value: 'Left' },
+                                            { label: 'Right', value: 'Right' },
+                                        ]}
+                                        value={userData.boardPreference}
+                                        onChange={item => setUserData(prev => ({ ...prev, boardPreference: item.value }))}
+                                        placeholder={userData.boardPreference || 'Select'}
+                                        disable={!isEditing}
+                                        containerStyle={{ width: '100%' }}
+                                        labelField="label"
+                                        valueField="value"
+                                        style={{
+                                            backgroundColor: isEditing ? 'white' : '#e0e0e0',
+                                            padding: 10,
+                                            borderRadius: 5,
+                                            borderWidth: 1,
+                                            borderColor: '#ccc'
+                                        }}
+                                    />
+                                </View>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Preferred Voice</Text>
+                                    <Dropdown
+                                        data={[
+                                            { label: 'Male', value: '0' },
+                                            { label: 'Female', value: '1' },
+
+                                        ]}
+                                        value={userData.preferredVoice}
+                                        onChange={item => setUserData(prev => ({ ...prev, preferredVoice: Number(item.value) }))}
+                                        placeholder={getPreferredVoiceLabel(userData.preferredVoice)}
+                                        containerStyle={{ width: '100%' }}
+                                        labelField="label"
+                                        valueField="value"
+                                        style={{ backgroundColor: isEditing ? 'white' : '#e0e0e0', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#ccc' }}
+                                    />
+                                </View>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Preferred Pitch</Text>
+                                    <Dropdown
+                                        data={[
+                                            { label: 'Low', value: '0' },
+                                            { label: 'Medium', value: '1' },
+                                            { label: 'High', value: '2' },
+                                        ]}
+                                        value={userData.preferredPitch}
+                                        onChange={item => setUserData(prev => ({ ...prev, preferredPitch: Number(item.value) }))}
+                                        placeholder={getPreferredPitchLabel(userData.preferredPitch)}
+                                        disable={!isEditing}
+                                        containerStyle={{ width: '100%' }}
+                                        labelField="label"
+                                        valueField="value"
+                                        style={{ backgroundColor: isEditing ? 'white' : '#e0e0e0', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#ccc' }}
+                                    />
+                                </View>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Preferred Voice Speed</Text>
+                                    <Dropdown
+                                        data={[
+                                            { label: 'Slow', value: '0' },
+                                            { label: 'Moderate', value: '1' },
+                                            { label: 'Fast', value: '2' },
+                                        ]}
+                                        value={userData.preferredSpeed}
+                                        onChange={item => setUserData(prev => ({ ...prev, preferredSpeed: Number(item.value) }))}
+                                        placeholder={getPreferredSpeedLabel(userData.preferredSpeed)}
+                                        disable={!isEditing}
+                                        containerStyle={{ width: '100%' }}
+                                        labelField="label"
+                                        valueField="value"
+                                        style={{ backgroundColor: isEditing ? 'white' : '#e0e0e0', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#ccc' }}
+                                    />
+                                </View>
+
+                                {
+                                    (userData.userType === 'Guardian') && (
+                                        <>
+                                            <Text style={{ fontWeight: 'bold', fontSize: 18 }}>END USER INFO</Text>
+
+                                            <View style={styles.inputContainer}>
+                                                <Text style={styles.label}>Name</Text>
+                                                <TextInput
+                                                    style={[styles.input, { backgroundColor: isEditing ? 'white' : '#e0e0e0' }]}
+                                                    placeholder="Enter your name"
+                                                    value={userData.endName}
+                                                    onChangeText={text => setUserData(prev => ({ ...prev, endName: text }))}
+                                                    editable={isEditing}
+                                                />
+                                            </View>
+
+                                            <View style={styles.inputContainer}>
+                                                <Text style={styles.label}>Age</Text>
+                                                <TextInput
+                                                    style={[styles.input, { backgroundColor: isEditing ? 'white' : '#e0e0e0' }]}
+                                                    placeholder="Enter your age"
+                                                    value={userData.endAge}
+                                                    onChangeText={text => setUserData(prev => ({ ...prev, endAge: text }))}
+                                                    keyboardType="numeric"
+                                                    editable={isEditing}
+                                                />
+                                            </View>
+                                        </>
+                                    )
+                                }
+                                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
+                                    {!isEditing ? (
+                                        <ActionButton
+                                            title="Edit"
+                                            color="#2196F3"
+                                            onPress={() => setIsEditing(true)}
+                                            width="100%"
+                                        />
+                                    ) : (
+                                        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, width: '80%' }}>
+                                            <ActionButton
+                                                title="Cancel"
+                                                color="#F44336"
+                                                onPress={() => setIsEditing(false)}
+                                                width="50%"
+                                            />
+                                            <ActionButton
+                                                title="Save"
+                                                color="#4CAF50"
+                                                onPress={handleSave}
+                                                width="50%"
+                                            />
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={{ marginTop: 30, alignItems: 'center' }}>
+                                    <ActionButton
+                                        title="Logout"
+                                        color="#FF9800"
+                                        onPress={() => { setshowLeaveModal(true) }}
+                                        width="100%"
+                                    />
+                                </View>
+
+                                <Modal
+                                    visible={showLeaveModal}
+                                    transparent
+                                    animationType="fade"
+                                    onRequestClose={() => setshowLeaveModal(false)}
+                                >
+                                    <View style={styles.modalOverlay}>
+                                        <View style={styles.modalContent}>
+                                            <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
+                                                Are you sure you want to log out?
+                                            </Text>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                                <ActionButton
+                                                    title="Cancel"
+                                                    color="#2196F3"
+                                                    onPress={() => setshowLeaveModal(false)}
+                                                    width="45%"
+                                                />
+                                                <ActionButton
+                                                    title="Logout"
+                                                    color="#F44336"
+                                                    onPress={async () => {
+                                                        try {
+                                                            await AsyncStorage.clear();
+                                                            setshowLeaveModal(false);
+                                                        } catch (error) {
+
+                                                        }
+                                                        finally {
+                                                            router.replace('/');
+                                                        }
+
+                                                    }}
+                                                    width="45%"
+                                                />
+                                            </View>
+                                        </View>
+                                    </View>
+                                </Modal>
+
+                                {Submitting && (
+                                    <View style={styles.modalOverlay}>
+                                        <View style={styles.modalContent}>
+                                            <Text style={{ textAlign: 'center', fontSize: 18 }}>Saving...</Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        }
+                    </>
                 </ScrollView>
-            }
-        </>
+            </SafeAreaView>
+        </SafeAreaProvider>
     )
 };
 

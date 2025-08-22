@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
 import axios from 'axios';
 import { UserContext } from '../../contexts/UserContext';
 import { Dropdown } from 'react-native-element-dropdown';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateBoard() {
     const [boardName, setBoardName] = useState('');
@@ -210,27 +211,33 @@ export default function CreateBoard() {
             <View style={styles.selectedSection}>
                 <Text style={styles.subHeader}>Selected Buttons</Text>
                 <View style={styles.selectedButtons}>
-                    {selectedButtons.map((button) => (
-                        <View
-                            key={button.id}
-                            style={[styles.buttonBox, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
-                        >
-                            <Text style={styles.buttonText}>{button.buttonName}</Text>
-                            <TouchableOpacity
-                                onPress={() => setSelectedButtons(prev => prev.filter(b => b.id !== button.id))}
-                                style={{
-                                    marginLeft: 8,
-                                    backgroundColor: '#EF4444',
-                                    borderRadius: 16,
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 2,
-                                    alignSelf: 'flex-start',
-                                }}
-                            >
-                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>x</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ))}
+                    <SafeAreaProvider>
+                        <SafeAreaView>
+                            <ScrollView contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} nestedScrollEnabled={true}>
+                                {selectedButtons.map((button) => (
+                                    <View
+                                        key={button.id}
+                                        style={[styles.buttonBox, { backgroundColor: getCategoryColor(button.buttonCategory) }]}
+                                    >
+                                        <Text style={styles.buttonText}>{button.buttonName}</Text>
+                                        <TouchableOpacity
+                                            onPress={() => setSelectedButtons(prev => prev.filter(b => b.id !== button.id))}
+                                            style={{
+                                                marginLeft: 8,
+                                                backgroundColor: '#EF4444',
+                                                borderRadius: 16,
+                                                paddingHorizontal: 8,
+                                                paddingVertical: 2,
+                                                alignSelf: 'flex-start',
+                                            }}
+                                        >
+                                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>x</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ))}
+                            </ScrollView>
+                        </SafeAreaView>
+                    </SafeAreaProvider>
                 </View>
 
                 {selectedButtons.length > 0 && (
@@ -275,7 +282,7 @@ export default function CreateBoard() {
                                     ]}
                                 >
                                     <View style={styles.imagePlaceholder} />
-                                    <Text style={styles.buttonLabel}>{button.buttonName}</Text>
+                                    <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.buttonLabel}>{button.buttonName}</Text>
                                     {isSelected && (
                                         <View
                                             style={{
@@ -365,6 +372,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flexDirection: 'row',
         flexWrap: 'wrap',
+        maxHeight: 150,
         gap: 8,
     },
     buttonBox: {

@@ -9,10 +9,10 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/aut
 import { useContext } from 'react';
 import { UserContext } from '../../contexts/UserContext';
 import { BoardContext } from '../../contexts/BoardContext';
-
+import AsyncStorage from '@react-native-async-storage/async-storage'
 export default function Login() {
     const router = useRouter();
-    const [username, setUsername] = useState('');
+    const [email, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function Login() {
     const [loadingReset, setLoadingReset] = useState(false);
 
     const validateInputs = () => {
-        if (username.length < 5 || password.length < 5) {
+        if (email.length < 5 || password.length < 5) {
             Alert.alert("Input Error", "Username and password must have at least 5 characters.");
             return false;
         }
@@ -39,7 +39,18 @@ export default function Login() {
         }
     }, [user]);
 
-
+    useEffect(() => {
+        if (AsyncStorage.getItem('userId') !== null) {
+            AsyncStorage.getItem('userId').then((storedUserId) => {
+                if (storedUserId) {
+                    setUser({ userId: storedUserId });
+                    router.replace({
+                        pathname: "/UserDashboard/MyBoards",
+                    });
+                }
+            });
+        }
+    }, []);
     const handleLogin = async () => {
         if (!validateInputs()) return;
 
@@ -47,16 +58,17 @@ export default function Login() {
         setErrorMessage('');
         try {
 
-            const userCredential = await signInWithEmailAndPassword(auth, username, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const uid = userCredential.user.uid;
             await setUser({ userId: uid });
+            await AsyncStorage.setItem('userId', uid);
 
 
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : "Login failed.";
             if (typeof error === 'object' && error !== null && 'code' in error) {
                 if (error.code === 'auth/user-not-found') {
-                    Alert.alert("Login Error", "No user found with this username.");
+                    Alert.alert("Login Error", "No user found with this email.");
                 } else if (error.code === 'auth/wrong-password') {
                     Alert.alert("Login Error", "Wrong Password.");
                 } else if (error.code === 'auth/invalid-email') {
@@ -75,7 +87,7 @@ export default function Login() {
 
     const handlePasswordReset = () => {
         setLoadingReset(true);
-        sendPasswordResetEmail(auth, username)
+        sendPasswordResetEmail(auth, email)
             .then(() => {
                 Alert.alert("Success", "Password reset email sent successfully.");
             })
@@ -96,18 +108,19 @@ export default function Login() {
             <View style={{ justifyContent: "flex-start", alignItems: "center", paddingVertical: 40, gap: 20, width: "95%", backgroundColor: "#ffffff", borderRadius: 20, borderWidth: 2, borderColor: '#043b64', shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 1.41, elevation: 2 }}>
                 <View style={{ alignSelf: 'center', width: '100%', justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ marginBottom: 4, color: '#043b64', fontWeight: 'bold', width: '80%', }}>
-                        Username <Text style={{ color: 'red' }}>*</Text>
+                        Email <Text style={{ color: 'red' }}>*</Text>
                     </Text>
                     <TextInput
-                        placeholder='Username'
+                        placeholder='Email'
                         style={textInputStyles.retroTextInput}
-                        value={username}
+                        value={email}
                         onChangeText={setUsername}
                         autoCapitalize="none"
+                        autoComplete='email'
                     />
-                    {username.length > 0 && username.length < 5 && (
+                    {email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (
                         <Text style={{ color: 'red', width: '80%', marginTop: 2, fontSize: 12 }}>
-                            Username must have at least 5 characters.
+                            Please enter a valid email address.
                         </Text>
                     )}
                 </View>
@@ -129,11 +142,6 @@ export default function Login() {
                             }
                         }}
                     />
-                    {password.length > 0 && password.length < 5 && (
-                        <Text style={{ color: 'red', width: '80%', marginTop: 2, fontSize: 12 }}>
-                            Password must have at least 5 characters.
-                        </Text>
-                    )}
                 </View>
                 {errorMessage !== '' && (
                     <Text style={{ color: 'red', width: '80%', textAlign: 'center', marginTop: 4, fontSize: 13 }}>
@@ -175,7 +183,7 @@ export default function Login() {
                                     <TextInput
                                         placeholder='Enter your email'
                                         style={[textInputStyles.retroTextInput, { marginBottom: 10 }]}
-                                        value={username}
+                                        value={email}
                                         onChangeText={setUsername}
                                     />
                                     <ActionButton

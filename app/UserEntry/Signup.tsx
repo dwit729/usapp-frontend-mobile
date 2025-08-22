@@ -280,9 +280,9 @@ export default function Signup() {
                                 <Text style={{ color: 'red', fontSize: 12, width: '80%' }}>
                                     First name is required.
                                 </Text>
-                            ) : firstName.length < 5 ? (
+                            ) : firstName.length < 2 ? (
                                 <Text style={{ color: 'red', fontSize: 12, width: '80%' }}>
-                                    First name must be at least 5 characters.
+                                    First name must be at least 2 characters.
                                 </Text>
                             ) : (
                                 <Text style={{ color: 'green', fontSize: 12, width: '80%' }}>
@@ -304,9 +304,9 @@ export default function Signup() {
                                 <Text style={{ color: 'red', fontSize: 12, width: '80%' }}>
                                     Last name is required.
                                 </Text>
-                            ) : lastName.length < 5 ? (
+                            ) : lastName.length < 2 ? (
                                 <Text style={{ color: 'red', fontSize: 12, width: '80%' }}>
-                                    Last name must be at least 5 characters.
+                                    Last name must be at least 2 characters.
                                 </Text>
                             ) : (
                                 <Text style={{ color: 'green', fontSize: 12, width: '80%' }}>

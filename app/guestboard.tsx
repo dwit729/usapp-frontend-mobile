@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, FlatList, Dimensions, ActivityIndicator, Modal, ScrollView } from 'react-native'
 import React, { useEffect, useState, useCallback } from 'react'
 import { BackHandler } from 'react-native'
 import { useRouter } from 'expo-router'
@@ -7,6 +7,7 @@ import axios from 'axios'
 import { Audio } from 'expo-av'
 import * as FileSystem from 'expo-file-system'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import * as Progress from 'react-native-progress';
 
 export default function guestboard() {
     const { width, height } = Dimensions.get('window');
@@ -16,7 +17,7 @@ export default function guestboard() {
     const [containerWidth, setContainerWidth] = useState(0);
     const [buttonSounds, setButtonSounds] = useState<{ [key: string]: string }>({});
     const [configLoading, setConfigLoading] = useState(true);
-
+    const [ProgressData, setProgressData] = useState(0);
     useEffect(() => {
         const preloadButtonSounds = async () => {
             setConfigLoading(true);
@@ -31,6 +32,7 @@ export default function guestboard() {
                         encoding: FileSystem.EncodingType.Base64,
                     });
                     setButtonSounds(prev => ({ ...prev, [button.buttonName]: uri }));
+                    setProgressData((prev) => prev + (100 / testButtons.length));
                 } catch (error) {
                     console.error(`Failed to preload sound for ${button.buttonName}:`, error);
                 }
@@ -260,20 +262,18 @@ export default function guestboard() {
                 <View style={styles.leftPanel}>
                     <View style={styles.topright}>
                         <View style={styles.collection}>
-                            <FlatList
-                                data={selectedWords}
-                                keyExtractor={(_, index) => index.toString()}
-                                horizontal
-                                pagingEnabled
-                                renderItem={({ item, index }) => (
-                                    <View style={styles.selectedWord}>
-                                        <Text style={{}}>{(item as { buttonName: string }).buttonName}</Text>
-                                        <TouchableOpacity onPress={() => handleDeleteWord(index)}>
-                                            <FontAwesome6 name="delete-left" size={20} color="red" />
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
-                            />
+                            <SafeAreaProvider>
+                                <SafeAreaView>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ alignItems: 'center', paddingVertical: 5 }}>
+                                        {selectedWords.map((word, index) => (
+                                            <TouchableOpacity key={index} style={styles.selectedWord} onPress={() => handleDeleteWord(index)}>
+                                                <FontAwesome6 name="xmark" size={16} color="red" />
+                                                <Text style={{ fontSize: 16 }}>{word.buttonName}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </SafeAreaView>
+                            </SafeAreaProvider>
                         </View>
                         <TouchableOpacity style={styles.clearbutton} onPress={handleClearAll}>
                             <MaterialCommunityIcons name='delete' size={32} color="#fff" />
@@ -312,45 +312,51 @@ export default function guestboard() {
                     </View>
                 </View>
                 <View style={styles.rightPanel}>
-                    <Text style={styles.panelHeader}>CONTROLS</Text>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => {
-                        if (selectedWords.length > 0) {
-                            const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
-                            activateTextToSpeech(textToSpeak);
-                        } else {
-                            Alert.alert("No words selected", "Please select words to speak.");
-                        }
-                    }}>
-                        <MaterialCommunityIcons name='text-to-speech' size={32} color="#fff" />
-                        <Text style={styles.iconText}>TALK</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => {
-                        if (selectedWords.length > 0) {
-                            const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
-                            handleBuildSentence(textToSpeak);
-                        } else {
-                            Alert.alert("No words selected", "Please select words to speak.");
-                        }
-                    }}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color="#fff" />
-                        ) : (
-                            <>
-                                <Entypo name="network" size={32} color="#fff" />
-                                <Text style={styles.iconText}>AI</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-                    <View style={styles.iconButton}>
-                        <Switch
-                            trackColor={{ false: "#767577", true: "#81b0ff" }}
-                            thumbColor={isSwitchOn ? "#f5dd4b" : "#f4f3f4"}
-                            value={isSwitchOn}
-                            onValueChange={toggleSwitch}
-                            style={styles.switch}
-                        />
-                        <Text style={styles.iconText}>AUTO SPEAK</Text>
-                    </View>
+                    <SafeAreaProvider>
+                        <SafeAreaView>
+                            <ScrollView>
+                                <Text style={styles.panelHeader}>CONTROLS</Text>
+                                <TouchableOpacity style={styles.iconButton} onPress={() => {
+                                    if (selectedWords.length > 0) {
+                                        const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
+                                        activateTextToSpeech(textToSpeak);
+                                    } else {
+                                        Alert.alert("No words selected", "Please select words to speak.");
+                                    }
+                                }}>
+                                    <MaterialCommunityIcons name='text-to-speech' size={32} color="#fff" />
+                                    <Text style={styles.iconText}>TALK</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.iconButton} onPress={() => {
+                                    if (selectedWords.length > 0) {
+                                        const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
+                                        handleBuildSentence(textToSpeak);
+                                    } else {
+                                        Alert.alert("No words selected", "Please select words to speak.");
+                                    }
+                                }}>
+                                    {loading ? (
+                                        <ActivityIndicator size="large" color="#fff" />
+                                    ) : (
+                                        <>
+                                            <Entypo name="network" size={32} color="#fff" />
+                                            <Text style={styles.iconText}>AI</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                                <View style={styles.iconButton}>
+                                    <Switch
+                                        trackColor={{ false: "#767577", true: "#81b0ff" }}
+                                        thumbColor={isSwitchOn ? "#f5dd4b" : "#f4f3f4"}
+                                        value={isSwitchOn}
+                                        onValueChange={toggleSwitch}
+                                        style={styles.switch}
+                                    />
+                                    <Text style={styles.iconText}>AUTO SPEAK</Text>
+                                </View>
+                            </ScrollView>
+                        </SafeAreaView>
+                    </SafeAreaProvider>
                 </View>
             </View>
 
@@ -375,16 +381,24 @@ export default function guestboard() {
                 </View>
             </Modal>
             <Modal
-                statusBarTranslucent={true}
+                statusBarTranslucent={false}
                 animationType="fade"
                 transparent={true}
                 visible={configLoading}
-                onRequestClose={() => setConfigLoading(false)}
+                onRequestClose={() => { }}
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalText}>CONFIGURING BOARD</Text>
-                        <ActivityIndicator size="large" color="#000" />
+                        <Progress.Bar
+                            progress={ProgressData / 100}
+                            width={200}
+                            color="#065a96"
+                            borderRadius={5}
+                            borderWidth={2}
+                            height={15}
+                            style={{ marginTop: 20 }}
+                        />
                     </View>
                 </View>
             </Modal>
@@ -429,7 +443,8 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         alignItems: "center",
         backgroundColor: "#fff6eb",
-        padding: 10,
+        paddingHorizontal: 10,
+        paddingTop: 10,
 
 
     },
@@ -440,6 +455,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#BEE6EA",
         padding: 10,
+
     },
     panelHeader: {
         fontSize: 20,
@@ -456,7 +472,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 10,
         width: "90%",
-        height: "20%",
+        height: "auto",
         minHeight: 80,
     },
     iconText: {
@@ -506,7 +522,8 @@ const styles = StyleSheet.create({
 
     },
     boardButton: {
-        width: 100,
+        minWidth: 100,
+        maxWidth: 140,
         maxHeight: 140,
         minHeight: 100,
         margin: 5,
