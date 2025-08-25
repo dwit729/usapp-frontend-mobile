@@ -1,4 +1,4 @@
-import { View, Text, Image, Alert, TouchableOpacity, Dimensions, ScrollView, TextInput, StyleSheet, BackHandler } from 'react-native'
+import { View, Text, Image, Alert, TouchableOpacity, Dimensions, ScrollView, TextInput, StyleSheet, BackHandler, Modal } from 'react-native'
 import { Dropdown } from 'react-native-element-dropdown';
 import React, { useContext, useState, useEffect, useCallback } from 'react'
 import { UserContext } from '../../contexts/UserContext';
@@ -16,6 +16,8 @@ export default function MyBoards() {
     const [UserData, setUserData] = useState();
     const [DisplayName, setDisplayName] = useState();
     const { width, height } = Dimensions.get('window');
+    const [reload, setreload] = useState(false);
+    const [Deleting, setDeleting] = useState(false);
 
     const [searchText, setSearchText] = useState<string>('');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -83,19 +85,6 @@ export default function MyBoards() {
         router.push({ pathname: '/UserBoard/Board' });
     }
 
-    const reloadButtons = async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userboards`);
-            setUserBoards(response.data); // Assuming the response contains an array of buttons
-            console.log(response.data);
-        } catch (error) {
-            console.error('Error fetching default buttons:', error);
-            Alert.alert('Error', 'Failed to fetch user boards');
-        } finally {
-            setLoading(false);
-        }
-    };
 
 
     useFocusEffect(
@@ -115,7 +104,7 @@ export default function MyBoards() {
             };
 
             fetchDefaultButtons();
-        }, [user])
+        }, [user, reload])
     );
 
     return (
@@ -191,16 +180,16 @@ export default function MyBoards() {
                                                     style: 'destructive',
                                                     onPress: async () => {
                                                         try {
-                                                            setLoading(true);
+                                                            setDeleting(true);
                                                             console.log(board.id);
-                                                            await axios.post(`https://usapp-backend.vercel.app/api/users/${user.userId}/${board.id}/deleteboard`).then(() => {
-                                                                Alert.alert('Success', 'Board deleted successfully');
-                                                                reloadButtons();
-                                                            })
-                                                        } catch (error) {
+                                                            await axios.post(`https://usapp-backend.vercel.app/api/users/${user.userId}/${board.id}/deleteboard`)
 
-                                                        } finally {
-                                                            setLoading(false);
+                                                        } catch (error) {
+                                                            Alert.alert('Success', 'Board deleted successfully');
+                                                            setreload(prev => !prev); // trigger reload to refetch boards
+                                                        }
+                                                        finally {
+                                                            setDeleting(false);
                                                         }
                                                     }
                                                 }
@@ -221,6 +210,25 @@ export default function MyBoards() {
                             ))
                         }
                     </View>
+                    <Modal visible={Deleting} transparent animationType="fade">
+                        <View style={{
+                            flex: 1,
+                            backgroundColor: 'rgba(0,0,0,0.3)',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }}>
+                            <View style={{
+                                backgroundColor: '#fff',
+                                padding: 32,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                                elevation: 10
+                            }}>
+                                <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>Deleting...</Text>
+                                <Text style={{ fontSize: 16, color: '#555' }}>Please wait while the board is being deleted.</Text>
+                            </View>
+                        </View>
+                    </Modal>
                 </View>
             </ScrollView>
         </>

@@ -359,7 +359,13 @@ export default function guestboard() {
             playButtonSound(button.buttonName);
         }
         else {
-            setSelectedWords((prev) => [...prev, button]);
+            setSelectedWords((prev) => {
+                if (prev.length >= 15) {
+                    Alert.alert("Limit reached", "You can only select up to 15 words.");
+                    return prev;
+                }
+                return [...prev, button];
+            });
         }
     }
     const playButtonSound = async (buttonName: string) => {

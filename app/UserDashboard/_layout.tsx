@@ -6,10 +6,11 @@ export default function UserEntryLayout() {
 
     return (
 
-        <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: "#043b64" }}>
+        <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: "#043b64", }}>
 
             <Tabs.Screen name="MyBoards"
                 options={{
+
                     title: "My Boards",
                     tabBarIcon: ({ color }) => <FontAwesome size={28} name="home" color={color} />
                 }}

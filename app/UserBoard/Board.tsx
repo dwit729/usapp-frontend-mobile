@@ -201,9 +201,14 @@ export default function guestboard({ navigation }: { navigation: any }) {
         console.log(PressTally)
         if (isSwitchOn) {
             playButtonSound(button.buttonName);
-        }
-        else {
-            setSelectedWords((prev) => [...prev, button]);
+        } else {
+            setSelectedWords((prev) => {
+                if (prev.length >= 15) {
+                    Alert.alert("Limit reached", "You can only select up to 15 words.");
+                    return prev;
+                }
+                return [...prev, button];
+            });
         }
         console.log(PressTally)
 
@@ -413,7 +418,7 @@ export default function guestboard({ navigation }: { navigation: any }) {
                                                         renderItem={({ item: button, index }) => (
                                                             <TouchableOpacity
                                                                 key={index}
-                                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory), height: height / 4.5 }]}
+                                                                style={[styles.boardButton, { backgroundColor: getCategoryColor(button.buttonCategory), height: height / 4.5, borderWidth: 1, borderColor: '#53545fff' }]}
                                                                 onPress={() => handleBoardButtonPress(button)}
                                                             >
                                                                 {button.buttonImagePath ? (

@@ -122,9 +122,19 @@ export default function CreateBoard() {
         }
     };
 
-    const filteredButtons = testButtons.filter(button =>
-        button.buttonName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredButtons = testButtons
+        .filter(button =>
+            button.buttonName.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => {
+            // Sort by category first
+            if (a.buttonCategory < b.buttonCategory) return -1;
+            if (a.buttonCategory > b.buttonCategory) return 1;
+            // Then by name
+            if (a.buttonName.toLowerCase() < b.buttonName.toLowerCase()) return -1;
+            if (a.buttonName.toLowerCase() > b.buttonName.toLowerCase()) return 1;
+            return 0;
+        });
 
     if (loading) {
         return (
@@ -174,7 +184,7 @@ export default function CreateBoard() {
                     data={boardCategoryOptions}
                     labelField="label"
                     valueField="value"
-                    placeholder="Select User Type"
+                    placeholder="Select Board Category"
                     value={boardCategory}
                     onChange={item => setBoardCategory(item.value)}
                     style={{
@@ -264,11 +274,11 @@ export default function CreateBoard() {
                                     onPress={() => handleSelectButton(button)}
                                     style={[
                                         styles.buttonWrapper,
-                                        { backgroundColor: getCategoryColor(button.buttonCategory) },
+                                        { backgroundColor: getCategoryColor(button.buttonCategory), borderWidth: 1, borderColor: 'black' },
                                         isSelected && styles.selectedButton
                                     ]}
                                 >
-                                    <Image style={styles.imagePlaceholder} source={{ uri: button.buttonImagePath }} />
+                                    <Image style={[styles.imagePlaceholder, { borderWidth: 1, borderColor: 'black' }]} source={{ uri: button.buttonImagePath }} />
                                     <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.buttonLabel}>{button.buttonName}</Text>
                                     {isSelected && (
                                         <View
@@ -368,6 +378,8 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flexDirection: 'row',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'black',
     },
     buttonText: {
         fontWeight: 'bold',
@@ -412,6 +424,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         margin: 4,
+        border: 1,
+        borderColor: 'black',
+
+
     },
     selectedButton: {
         borderWidth: 5,
