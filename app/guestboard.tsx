@@ -98,10 +98,10 @@ export default function guestboard() {
         },
         {
             "id": "1WUjZxpS0ujXivdZHUZZ",
-            "buttonName": "Gawa",
-            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756116549649_gawa.svg?alt=media&token=1e565cba-a623-4bac-8490-d774c894bce4",
             "buttonCategory": "Verbs",
-            "buttonImageRef": "default/photos/1756116549649_gawa.svg",
+            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756128299681_gawa.png?alt=media&token=f9bd0975-15ae-4bea-bef3-bbccda8be6a1",
+            "buttonImageRef": "default/photos/1756128299681_gawa.png",
+            "buttonName": "Gawa1",
             "source": "DefaultButtons"
         },
         {
@@ -131,25 +131,25 @@ export default function guestboard() {
         {
             "id": "I8877NKz03WO29ODBxFT",
             "buttonName": "Bigay",
-            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756116574111_bigay.svg?alt=media&token=7500dcb3-277d-46d4-ad19-339318e3dd00",
             "buttonCategory": "Verbs",
-            "buttonImageRef": "default/photos/1756116574111_bigay.svg",
+            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756128319751_bigay.png?alt=media&token=0f0d89f1-52be-43aa-8a26-fc3994d4e1da",
+            "buttonImageRef": "default/photos/1756128319751_bigay.png",
             "source": "DefaultButtons"
         },
         {
             "id": "JzirfqBezp6BrPbhUl5P",
             "buttonName": "Salita",
-            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756116631795_salita.svg?alt=media&token=3d1a5a66-6aa4-43ab-8646-3bcd8af4b590",
             "buttonCategory": "Verbs",
-            "buttonImageRef": "default/photos/1756116631795_salita.svg",
+            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756128346755_salita.png?alt=media&token=c555aa6d-92b7-447c-9930-b7a05b7edac9",
+            "buttonImageRef": "default/photos/1756128346755_salita.png",
             "source": "DefaultButtons"
         },
         {
             "id": "NemP2oVC1C7LTsBvMaJw",
             "buttonName": "Tulog",
-            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756116506789_tulog.svg?alt=media&token=40ed5156-81d4-4fbf-b49a-2062c4d0bba8",
             "buttonCategory": "Verbs",
-            "buttonImageRef": "default/photos/1756116506789_tulog.svg",
+            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756128364507_tulog.png?alt=media&token=c83e7ee0-7d1e-4a46-a95d-e2269ffb4f9e",
+            "buttonImageRef": "default/photos/1756128364507_tulog.png",
             "source": "DefaultButtons"
         },
         {
@@ -219,9 +219,9 @@ export default function guestboard() {
         {
             "id": "qMpqvDkRaAepOzeeqAn8",
             "buttonName": "Saan",
-            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756109710595_Where.svg?alt=media&token=7f993488-40e7-47ef-952a-f36012bbe7d7",
             "buttonCategory": "Questions",
-            "buttonImageRef": "default/photos/1756109710595_Where.svg",
+            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756124306577_Where.png?alt=media&token=bb0624d3-88b9-4051-8dde-e09c435c0b1c",
+            "buttonImageRef": "default/photos/1756124306577_Where.png",
             "source": "DefaultButtons"
         },
         {
@@ -235,9 +235,9 @@ export default function guestboard() {
         {
             "id": "3gtOG6Z9bGylv9kCMemx",
             "buttonName": "Kailan",
-            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756115986651_Kailan.png?alt=media&token=3ac18fc8-3798-4315-ad25-5f08e6ec2cb0",
             "buttonCategory": "Questions",
-            "buttonImageRef": "default/photos/1756115986651_Kailan.png",
+            "buttonImagePath": "https://firebasestorage.googleapis.com/v0/b/usapp-b776a.firebasestorage.app/o/default%2Fphotos%2F1756124176093_Kailan.png?alt=media&token=61dc8ec6-96f2-4ab7-ae07-3c96c76e2783",
+            "buttonImageRef": "default/photos/1756124176093_Kailan.png",
             "source": "DefaultButtons"
         },
         {
