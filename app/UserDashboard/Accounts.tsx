@@ -14,7 +14,7 @@ export default function Accounts() {
     const router = useRouter();
     const [showLeaveModal, setshowLeaveModal] = useState(false);
 
-    const { user } = useContext(UserContext);
+    const { user, setUser } = useContext(UserContext);
     const [userData, setUserData] = useState({
         firstName: '',
         lastName: '',
@@ -75,19 +75,37 @@ export default function Accounts() {
         fetchUserData();
     }, [user]);
 
+    const handleLogout = async () => {
+        try {
+            await AsyncStorage.clear().then(() => {
+                router.dismiss(2)
+                setUser(null);
+            });
+        } catch (error) {
+            console.error('Error during logout:', error);
+        }
+    };
+
     const handleSave = async () => {
         // Basic validation
-        if (!userData.username || userData.username.trim() === '') {
-            alert('Username is required.');
+        // Username validation
+        if (!userData.username || userData.username.trim().length < 2) {
+            alert('Username is required and must be at least 2 characters.');
             return;
         }
+        // Email validation
+        if (!userData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+            alert('A valid email address is required.');
+            return;
+        }
+        // Guardian-specific validation
         if (userData.userType === 'Guardian') {
-            if (!userData.endName || userData.endName.trim() === '') {
-                alert('End user name is required.');
+            if (!userData.endName || userData.endName.trim().length < 2) {
+                alert('End user name is required and must be at least 2 characters.');
                 return;
             }
-            if (!userData.endAge || isNaN(Number(userData.endAge))) {
-                alert('End user age must be a number.');
+            if (!userData.endAge || isNaN(Number(userData.endAge)) || Number(userData.endAge) < 5 || Number(userData.endAge) > 120) {
+                alert('Invalid end user age. Please enter a valid age between 5 and 120.');
                 return;
             }
         }
@@ -295,14 +313,11 @@ export default function Accounts() {
                                                     color="#F44336"
                                                     onPress={async () => {
                                                         try {
-                                                            await AsyncStorage.clear();
-                                                            setshowLeaveModal(false);
+                                                            handleLogout()
                                                         } catch (error) {
 
                                                         }
-                                                        finally {
-                                                            router.replace('/');
-                                                        }
+
 
                                                     }}
                                                     width="45%"

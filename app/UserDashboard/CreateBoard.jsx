@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
 import axios from 'axios';
 import { UserContext } from '../../contexts/UserContext';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -31,46 +31,29 @@ export default function CreateBoard() {
     useEffect(() => {
         if (!user || !user.userId) return;
 
-        const fetchDefaultButtons = async () => {
+        const fetchButtonsAndUserData = async () => {
             setLoading(true);
             try {
-                const response = await axios.get('https://usapp-backend.vercel.app/api/default/buttonsall');
-                setTestButtons(response.data.buttons); // Assuming the response contains an array of buttons
+                const [defaultRes, userRes, userDataRes] = await Promise.all([
+                    axios.get('https://usapp-backend.vercel.app/api/default/buttonsall'),
+                    axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userbuttons`),
+                    axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`)
+                ]);
+                // Combine default and user buttons
+                const allButtons = [
+                    ...(defaultRes.data.buttons || []),
+                    ...(userRes.data || [])
+                ];
+                setTestButtons(allButtons);
+                setUserData({ ...userDataRes.data, userId: user.userId });
             } catch (error) {
-
-                Alert.alert('Error', 'Failed to fetch default buttons.');
+                Alert.alert('Error', 'Failed to fetch buttons or user data.');
             } finally {
                 setLoading(false);
             }
         };
 
-        const fetchUserButtons = async () => {
-            try {
-                const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userbuttons`);
-                setTestButtons(prevButtons => [...prevButtons, ...response.data]);
-            } catch (error) {
-                window.alert(error.message);
-            } finally {
-
-            }
-        }
-
-
-
-        const fetchUserData = async () => {
-            setLoading(true);
-            try {
-                const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`);
-                setUserData({ ...response.data, userId: user.userId });
-            } catch (error) {
-
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchDefaultButtons();
-        fetchUserButtons();
-        fetchUserData();
+        fetchButtonsAndUserData();
 
     }, [user]);
 
@@ -79,6 +62,10 @@ export default function CreateBoard() {
         if (isSelected) {
             setSelectedButtons(prev => prev.filter(b => b.id !== button.id));
         } else {
+            if (selectedButtons.length >= 40) {
+                Alert.alert('Limit Reached', 'You can select up to 40 buttons only.');
+                return;
+            }
             setSelectedButtons(prev => [...prev, button]);
         }
     };
@@ -106,8 +93,8 @@ export default function CreateBoard() {
     };
 
     const handleSubmit = async () => {
-        if (!boardName || !boardCategory || selectedButtons.length === 0) {
-            Alert.alert('Incomplete', 'Please complete all fields and select at least one button.');
+        if (!boardName || !boardCategory || selectedButtons.length < 5) {
+            Alert.alert('Incomplete', 'Please complete all fields and select at least 5 button.');
             return;
         }
 
@@ -281,7 +268,7 @@ export default function CreateBoard() {
                                         isSelected && styles.selectedButton
                                     ]}
                                 >
-                                    <View style={styles.imagePlaceholder} />
+                                    <Image style={styles.imagePlaceholder} source={{ uri: button.buttonImagePath }} />
                                     <Text adjustsFontSizeToFit={true} numberOfLines={1} style={styles.buttonLabel}>{button.buttonName}</Text>
                                     {isSelected && (
                                         <View

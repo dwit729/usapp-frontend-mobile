@@ -40,16 +40,20 @@ export default function Login() {
     }, [user]);
 
     useEffect(() => {
-        if (AsyncStorage.getItem('userId') !== null) {
-            AsyncStorage.getItem('userId').then((storedUserId) => {
-                if (storedUserId) {
-                    setUser({ userId: storedUserId });
-                    router.replace({
-                        pathname: "/UserDashboard/MyBoards",
-                    });
-                }
-            });
+        const fetchAsyncStorageUserId = async () => {
+            const storedUserId = await AsyncStorage.getItem('userId');
+            if (storedUserId !== null) {
+                AsyncStorage.getItem('userId').then((storedUserId) => {
+                    if (storedUserId) {
+                        setUser({ userId: storedUserId });
+                        router.replace({
+                            pathname: "/UserDashboard/MyBoards",
+                        });
+                    }
+                });
+            }
         }
+        fetchAsyncStorageUserId();
     }, []);
     const handleLogin = async () => {
         if (!validateInputs()) return;

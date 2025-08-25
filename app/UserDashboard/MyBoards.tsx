@@ -1,17 +1,17 @@
-import { View, Text, Image, Alert, TouchableOpacity, Dimensions, ScrollView, TextInput, StyleSheet } from 'react-native'
+import { View, Text, Image, Alert, TouchableOpacity, Dimensions, ScrollView, TextInput, StyleSheet, BackHandler } from 'react-native'
 import { Dropdown } from 'react-native-element-dropdown';
 import React, { useContext, useState, useEffect, useCallback } from 'react'
 import { UserContext } from '../../contexts/UserContext';
 import axios from 'axios';
 import { router, useFocusEffect } from 'expo-router';
 import { BoardContext } from '../../contexts/BoardContext';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MyBoards() {
     const { user, setUser } = useContext(UserContext);
     const { board, setBoard } = useContext(BoardContext);
     const [UserBoard, setUserBoard] = useState();
-    const [UserBoards, setUserBoards] = useState<{ boardName: string; boardCategory: string; category?: string }[]>([]);
+    const [UserBoards, setUserBoards] = useState<{ id: string; boardName: string; boardCategory: string; category?: string }[]>([]);
     const [Loading, setLoading] = useState(false);
     const [UserData, setUserData] = useState();
     const [DisplayName, setDisplayName] = useState();
@@ -40,6 +40,25 @@ export default function MyBoards() {
         }
     };
 
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+
+            Alert.alert('Hold on!', 'Are you sure you want to exit the app?', [
+                { text: 'Cancel', style: 'cancel', onPress: () => null },
+                {
+                    text: 'YES', onPress: () => {
+
+                        router.dismiss(2)
+                    }
+                },
+            ]);
+            return true;
+        });
+
+        return () => backHandler.remove();
+    }, []);
+
+
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -63,6 +82,20 @@ export default function MyBoards() {
         console.log("board", board);
         router.push({ pathname: '/UserBoard/Board' });
     }
+
+    const reloadButtons = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}/userboards`);
+            setUserBoards(response.data); // Assuming the response contains an array of buttons
+            console.log(response.data);
+        } catch (error) {
+            console.error('Error fetching default buttons:', error);
+            Alert.alert('Error', 'Failed to fetch user boards');
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     useFocusEffect(
@@ -146,7 +179,35 @@ export default function MyBoards() {
                                     onPress={async () => {
                                         await setBoard(board);
                                         goToBoard();
-                                    }}>
+                                    }}
+                                    onLongPress={() => {
+                                        Alert.alert(
+                                            'Delete Board',
+                                            `Are you sure you want to delete "${board.boardName}"?`,
+                                            [
+                                                { text: 'Cancel', style: 'cancel' },
+                                                {
+                                                    text: 'Delete',
+                                                    style: 'destructive',
+                                                    onPress: async () => {
+                                                        try {
+                                                            setLoading(true);
+                                                            console.log(board.id);
+                                                            await axios.post(`https://usapp-backend.vercel.app/api/users/${user.userId}/${board.id}/deleteboard`).then(() => {
+                                                                Alert.alert('Success', 'Board deleted successfully');
+                                                                reloadButtons();
+                                                            })
+                                                        } catch (error) {
+
+                                                        } finally {
+                                                            setLoading(false);
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        );
+                                    }}
+                                >
                                     <View
                                         style={[
                                             styles.boardCard,
@@ -154,7 +215,7 @@ export default function MyBoards() {
                                         ]}
                                     >
                                         <View style={styles.boardImage} />
-                                        <Text adjustsFontSizeToFit style={styles.boardName}>{board.boardName}</Text>
+                                        <Text adjustsFontSizeToFit numberOfLines={1} style={styles.boardName}>{board.boardName}</Text>
                                     </View>
                                 </TouchableOpacity>
                             ))

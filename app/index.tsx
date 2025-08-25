@@ -1,9 +1,14 @@
 import { Text, View, Image, TextInput } from "react-native";
 import ActionButton from "../components/Buttons/ActionButton"
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, useUnstableGlobalHref } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 
 
 export default function Index() {
+
+
+
 
   const router = useRouter();
   return (

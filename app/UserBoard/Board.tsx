@@ -252,7 +252,17 @@ export default function guestboard({ navigation }: { navigation: any }) {
             case "Feelings": return "#32CD32";
             case "Things": return "#1E90FF";
             case "Places": return "#8A2BE2";
-            default: return "#ccc";
+            case 'Nouns': return '#FFA332'; // orange
+            case 'Pronouns': return '#FFE777'; // light yellow
+            case 'Verbs': return '#A3E264'; // light green
+            case 'Adjectives': return '#63C4FF'; // sky blue
+            case 'Prepositions & Social Words': return '#FF84C1'; // light pink
+            case 'Questions': return '#B28BFF'; // lavender
+            case 'Negation & Important Words': return '#FF4747'; // bright red
+            case 'Adverbs': return '#B98A6A'; // brown/tan
+            case 'Conjunctions': return '#FFFFFF'; // white
+            case 'Determiners': return '#595959'; // dark gray
+            default: return '#D3D3D3'; // fallback light gray
         }
     };
 
@@ -338,7 +348,7 @@ export default function guestboard({ navigation }: { navigation: any }) {
                         animationType="fade"
                         transparent={true}
                         visible={configLoading}
-                        onRequestClose={() => { }}
+                        onRequestClose={() => { router.back() }}
                     >
                         <View style={styles.modalContainer}>
                             <View style={styles.modalContent}>
@@ -375,7 +385,7 @@ export default function guestboard({ navigation }: { navigation: any }) {
                                                             <View key={index} style={styles.selectedWord}>
                                                                 <Text>{item.buttonName}</Text>
                                                                 <TouchableOpacity onPress={() => handleDeleteWord(index)}>
-                                                                    <FontAwesome6 name="delete-left" size={20} color="red" />
+                                                                    <FontAwesome6 name="delete-left" size={25} color="red" />
                                                                 </TouchableOpacity>
                                                             </View>
                                                         ))}
@@ -397,8 +407,8 @@ export default function guestboard({ navigation }: { navigation: any }) {
                                                         data={testButtons}
                                                         keyExtractor={(_, index) => index.toString()}
                                                         numColumns={numColumns}
-                                                        pagingEnabled
                                                         showsVerticalScrollIndicator={true}
+                                                        persistentScrollbar={true}
                                                         scrollEnabled={true}
                                                         renderItem={({ item: button, index }) => (
                                                             <TouchableOpacity
@@ -432,6 +442,7 @@ export default function guestboard({ navigation }: { navigation: any }) {
                                     <SafeAreaProvider>
                                         <SafeAreaView>
                                             <ScrollView contentContainerStyle={{ alignItems: 'center', justifyContent: 'flex-start' }}>
+                                                <Text style={styles.panelHeader}>CONTROLS</Text>
                                                 <TouchableOpacity style={styles.iconButton} onPress={() => {
                                                     if (selectedWords.length > 0) {
                                                         const textToSpeak = selectedWords.map(word => word.buttonName).join(' ');
@@ -687,8 +698,8 @@ const styles = StyleSheet.create({
     },
     boardButton: {
         minWidth: 100,
-        maxWidth: 140,
-        maxHeight: 140,
+        maxWidth: 150,
+        maxHeight: 150,
         minHeight: 100,
         margin: 5,
         borderRadius: 10,
