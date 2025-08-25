@@ -58,19 +58,19 @@ export default function Accounts() {
             case 2: return 'Fast';
         }
     }
-
+    const fetchUserData = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`);
+            setUserData({ ...response.data, userId: user.userId });
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
     useEffect(() => {
-        const fetchUserData = async () => {
-            setLoading(true);
-            try {
-                const response = await axios.get(`https://usapp-backend.vercel.app/api/users/${user.userId}`);
-                setUserData({ ...response.data, userId: user.userId });
-            } catch (error) {
-                console.error('Error fetching user data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+
 
         fetchUserData();
     }, [user]);
@@ -268,7 +268,7 @@ export default function Accounts() {
                                             <ActionButton
                                                 title="Cancel"
                                                 color="#F44336"
-                                                onPress={() => setIsEditing(false)}
+                                                onPress={() => { setIsEditing(false); fetchUserData(); }}
                                                 width="50%"
                                             />
                                             <ActionButton
